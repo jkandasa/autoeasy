@@ -1,0 +1,5 @@
+# ignore files and directories
+logs/*
+resources/*
+builds/*
+plugin.yaml
