@@ -16,6 +16,14 @@ jobs:
         with:
           go-version: ^1.17
 
+      - name: cache go modules
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
       - name: build executable bundles
         run: ./scripts/publish_executables.sh
 
