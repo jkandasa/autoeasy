@@ -17,7 +17,7 @@ func Run(cfg *openshiftTY.ProviderConfig) error {
 		return add(cfg)
 
 	case openshiftTY.FuncKeepOnly, openshiftTY.FuncRemove, openshiftTY.FuncRemoveAll:
-		performDelete(cfg)
+		return performDelete(cfg)
 
 	}
 

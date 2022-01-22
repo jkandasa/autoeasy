@@ -15,7 +15,6 @@ import (
 )
 
 const (
-	defaultTimeout              = time.Minute * 5
 	defaultStatusUpdateDuration = time.Second * 10
 	defaultDir                  = "./logs/command_output"
 	generatedScriptDir          = "./generated_scripts"
@@ -24,7 +23,11 @@ const (
 func (lc *LocalCommand) run(action *templateTY.Action) error {
 	cfg := commandTY.InputConfig{}
 
-	formatterUtils.YamlInterfaceToStruct(action.Input, &cfg)
+	err := formatterUtils.YamlInterfaceToStruct(action.Input, &cfg)
+	if err != nil {
+		return err
+	}
+
 	for _, data := range cfg.Data {
 		err := lc.executeCmd(action, data)
 		if err != nil {
@@ -55,7 +58,12 @@ func (lc *LocalCommand) executeCmd(action *templateTY.Action, data interface{}) 
 		}
 		scriptfile := fmt.Sprintf("%s/%s", generatedScriptDir, scriptname)
 		// on exit remove the file
-		defer fileUtils.RemoveFileOrEmptyDir(scriptfile)
+		defer func() {
+			err := fileUtils.RemoveFileOrEmptyDir(scriptfile)
+			if err != nil {
+				zap.L().Error("error on deleting generated script file", zap.String("scriptFile", scriptfile), zap.Error(err))
+			}
+		}()
 
 		cmd.Command = "sh"
 		cmd.Args = []string{scriptfile}

@@ -30,7 +30,10 @@ type Openshift struct {
 
 func New(config map[string]interface{}) (providerPluginTY.Plugin, error) {
 	openshiftCfg := openshiftTY.PluginConfig{}
-	formatterUtils.YamlInterfaceToStruct(config, &openshiftCfg)
+	err := formatterUtils.YamlInterfaceToStruct(config, &openshiftCfg)
+	if err != nil {
+		return nil, err
+	}
 	return &Openshift{Config: openshiftCfg}, nil
 }
 
