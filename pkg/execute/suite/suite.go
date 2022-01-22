@@ -36,14 +36,33 @@ func Load(dir string) error {
 		if err != nil {
 			return err
 		}
-		cfg := suiteTY.SuiteConfig{}
 
-		tpl, err := templateUtils.Execute(string(data), map[string]interface{}{})
+		// update variables in suite file
+		cfgPre := suiteTY.SuiteConfigPre{}
+		// load environment variables
+		tplPre, err := templateUtils.Execute(string(data), map[string]interface{}{})
+		if err != nil {
+			return err
+		}
+		err = yaml.Unmarshal([]byte(tplPre), &cfgPre)
 		if err != nil {
 			return err
 		}
 
-		err = yaml.Unmarshal([]byte(tpl), &cfg)
+		// load all variables
+		vars, err := updateVariables(cfgPre.Default.VariablesName, cfgPre.Variables, nil)
+		if err != nil {
+			return err
+		}
+
+		// load template with defined variables
+		cfg := suiteTY.SuiteConfig{}
+		tplPost, err := templateUtils.Execute(string(data), *vars)
+		if err != nil {
+			return err
+		}
+
+		err = yaml.Unmarshal([]byte(tplPost), &cfg)
 		if err != nil {
 			return err
 		}
@@ -78,32 +97,37 @@ func Execute() error {
 
 func runExecution(exeCfg *suiteTY.SuiteConfig) error {
 	// TODO: load default variables
-	for _, execution := range exeCfg.Actions {
+	for _, action := range exeCfg.Actions {
 		// update template
-		if execution.Template == "" {
-			execution.Template = exeCfg.Default.TemplateName
+		if action.Template == "" {
+			action.Template = exeCfg.Default.TemplateName
 		}
 
-		zap.L().Info("about to execute an action", zap.String("actionName", execution.ActionName), zap.String("template", execution.Template))
+		if action.Disabled {
+			zap.L().Info("action disabled", zap.String("actionName", action.Name), zap.String("template", action.Template))
+			continue
+		}
+
+		zap.L().Info("about to execute an action", zap.String("actionName", action.Name), zap.String("template", action.Template))
 		startTime := time.Now()
-		err := runAction(exeCfg, &execution)
+		err := runAction(exeCfg, &action)
 		if err != nil {
 			return err
 		}
-		zap.L().Info("action execution completed", zap.String("actionName", execution.ActionName), zap.String("template", execution.Template), zap.String("timeTaken", time.Since(startTime).String()))
+		zap.L().Info("action execution completed", zap.String("actionName", action.Name), zap.String("template", action.Template), zap.String("timeTaken", time.Since(startTime).String()))
 	}
 	return nil
 }
 
-func runAction(exeCfg *suiteTY.SuiteConfig, execution *suiteTY.Action) error {
+func runAction(exeCfg *suiteTY.SuiteConfig, action *suiteTY.Action) error {
 	// get template variables
-	rawTemplate, err := templateStore.Get(execution.Template)
+	rawTemplate, err := templateStore.Get(action.Template)
 	if err != nil {
 		return err
 	}
 
 	// update variables
-	vars, err := updateVariables(exeCfg.Default.VariablesNames, exeCfg.Variables, execution.Variables)
+	vars, err := updateVariables(exeCfg.Default.VariablesName, exeCfg.Variables, action.Variables)
 	if err != nil {
 		return err
 	}
@@ -121,20 +145,20 @@ func runAction(exeCfg *suiteTY.SuiteConfig, execution *suiteTY.Action) error {
 		return err
 	}
 
-	// get action from the template
-	var action *templateTY.Action
+	// get tplAction from the template
+	var tplAction *templateTY.Action
 	for _, a := range tpl.Actions {
-		if a.Name == execution.ActionName {
-			action = &a
+		if a.Name == action.Name {
+			tplAction = &a
 			break
 		}
 	}
-	if action == nil {
-		return fmt.Errorf("action not available in the template. templateName:%s, actionName:%s", execution.Template, execution.ActionName)
+	if tplAction == nil {
+		return fmt.Errorf("action not available in the template. templateName:%s, actionName:%s", action.Template, action.Name)
 	}
 
 	// execute action
-	err = run(action)
+	err = run(tplAction)
 	return err
 }
 
@@ -145,13 +169,9 @@ func updateVariables(variableNames []string, exeVariables, localVariables variab
 		if err != nil {
 			return nil, err
 		}
-		// execute as template
-		// convert to string
-		data, err := yaml.Marshal(varCfg.Variables)
-		if err != nil {
-			return nil, err
-		}
-		updatedData, err := templateUtils.Execute(string(data), nil)
+
+		// update templates in variables (supports only for environment variables)
+		updatedData, err := templateUtils.Execute(varCfg.RawData, nil)
 		if err != nil {
 			return nil, err
 		}

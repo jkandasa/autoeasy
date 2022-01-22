@@ -9,6 +9,7 @@ import (
 	templateTY "github.com/jkandasa/autoeasy/pkg/types/template"
 	formatterUtils "github.com/jkandasa/autoeasy/pkg/utils/formatter"
 	axnCS "github.com/jkandasa/autoeasy/plugin/provider/openshift/action/catalog_source"
+	axnDeployment "github.com/jkandasa/autoeasy/plugin/provider/openshift/action/deployment"
 	axnICSP "github.com/jkandasa/autoeasy/plugin/provider/openshift/action/image_content_source_policy"
 	axnNS "github.com/jkandasa/autoeasy/plugin/provider/openshift/action/namespace"
 	axnSubscription "github.com/jkandasa/autoeasy/plugin/provider/openshift/action/subscription"
@@ -98,8 +99,11 @@ func (o *Openshift) Execute(action *templateTY.Action) error {
 	case openshiftTY.KindSubscription:
 		return axnSubscription.Run(config)
 
+	case openshiftTY.KindDeployment:
+		return axnDeployment.Run(config)
+
 	default:
-		return fmt.Errorf("invalid kind:%s", config.Kind)
+		return fmt.Errorf("invalid kind:[%s]", config.Kind)
 
 	}
 }

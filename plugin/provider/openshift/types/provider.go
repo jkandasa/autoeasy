@@ -34,15 +34,14 @@ func (p *PluginConfig) Validate() error {
 
 // ProviderConfig struct
 type ProviderConfig struct {
-	Kind   string        `yaml:"kind"`
-	Action string        `yaml:"function"`
-	Config ActionConfig  `yaml:"config"`
-	Data   []interface{} `yaml:"data"`
+	Kind     string        `yaml:"kind"`
+	Function string        `yaml:"function"`
+	Config   ActionConfig  `yaml:"config"`
+	Data     []interface{} `yaml:"data"`
 }
 
 type ActionConfig struct {
 	Recreate      bool          `yaml:"recreate"`
-	OnFailure     string        `yaml:"on_failure"`
 	TimeoutConfig TimeoutConfig `yaml:"timeout_config"`
 }
 

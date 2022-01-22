@@ -29,13 +29,14 @@ func LoadVariables(dir string) error {
 		if err != nil {
 			return err
 		}
-		varCfg := &variableTY.VariableConfig{}
+		varCfg := &variableTY.VariableConfigPre{}
 		err = yaml.Unmarshal(data, varCfg)
 		if err != nil {
 			return err
 		}
-		// include filename
+		// include filename and raw data
 		varCfg.FileName = file.FullPath
+		varCfg.RawData = string(data)
 		err = add(varCfg)
 		if err != nil {
 			return err

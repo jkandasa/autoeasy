@@ -97,7 +97,7 @@ func Install(cfg map[string]interface{}, tc openshiftTY.TimeoutConfig) error {
 		return err
 	}
 
-	return deploymentAPI.WaitForDeployments(deployments, subscription.Namespace)
+	return deploymentAPI.WaitForDeployments(deployments, subscription.Namespace, tc)
 }
 
 func getDeployments(subscriptionName, namespace string) ([]string, error) {

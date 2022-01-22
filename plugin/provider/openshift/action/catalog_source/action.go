@@ -13,7 +13,7 @@ import (
 )
 
 func Run(cfg *openshiftTY.ProviderConfig) error {
-	switch cfg.Action {
+	switch cfg.Function {
 	case openshiftTY.FuncAdd:
 		return add(cfg)
 
@@ -34,14 +34,14 @@ func performDelete(cfg *openshiftTY.ProviderConfig) error {
 		zap.L().Fatal("error on getting CatalogSource list", zap.Error(err))
 	}
 
-	if cfg.Action == openshiftTY.FuncRemoveAll {
+	if cfg.Function == openshiftTY.FuncRemoveAll {
 		return delete(cfg, csList.Items)
-	} else if cfg.Action == openshiftTY.FuncRemoveAll || cfg.Action == openshiftTY.FuncKeepOnly {
+	} else if cfg.Function == openshiftTY.FuncRemoveAll || cfg.Function == openshiftTY.FuncKeepOnly {
 		deletionList := make([]corsosv1alpha1.CatalogSource, 0)
 
 		suppliedItems := utils.ToStringSlice(cfg.Data)
 
-		isRemove := cfg.Action == openshiftTY.FuncRemove
+		isRemove := cfg.Function == openshiftTY.FuncRemove
 
 		for _, cs := range csList.Items {
 			if isRemove { // remove

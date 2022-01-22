@@ -8,13 +8,13 @@ import (
 )
 
 type store struct {
-	variables map[string]*variableTY.VariableConfig
+	variables map[string]*variableTY.VariableConfigPre
 	mutex     sync.Mutex
 }
 
-var varsStore = &store{variables: make(map[string]*variableTY.VariableConfig), mutex: sync.Mutex{}}
+var varsStore = &store{variables: make(map[string]*variableTY.VariableConfigPre), mutex: sync.Mutex{}}
 
-func add(varCfg *variableTY.VariableConfig) error {
+func add(varCfg *variableTY.VariableConfigPre) error {
 	varsStore.mutex.Lock()
 	defer varsStore.mutex.Unlock()
 
@@ -27,7 +27,7 @@ func add(varCfg *variableTY.VariableConfig) error {
 	return nil
 }
 
-func Get(name string) (*variableTY.VariableConfig, error) {
+func Get(name string) (*variableTY.VariableConfigPre, error) {
 	varsStore.mutex.Lock()
 	defer varsStore.mutex.Unlock()
 	t, ok := varsStore.variables[name]
