@@ -2,6 +2,7 @@ package types
 
 const (
 	// functions
+	FuncGet          = "get"
 	FuncAdd          = "add"
 	FuncRemove       = "remove"
 	FuncRemoveAll    = "remove_all"

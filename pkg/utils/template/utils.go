@@ -7,6 +7,7 @@ import (
 	"text/template"
 	"time"
 
+	dataRepoSVC "github.com/jkandasa/autoeasy/pkg/service/data_repository"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -51,6 +52,10 @@ func getEnv(v interface{}) string {
 	return os.Getenv(fmt.Sprintf("%s", v))
 }
 
-func getValueFromRepo(v interface{}) string {
-	return os.Getenv(fmt.Sprintf("%s", v))
+func getValueFromRepo(v interface{}) interface{} {
+	value := dataRepoSVC.Get(fmt.Sprintf("%s", v))
+	if value != nil {
+		return value
+	}
+	return ""
 }

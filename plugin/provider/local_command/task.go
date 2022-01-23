@@ -20,21 +20,21 @@ const (
 	generatedScriptDir          = "./generated_scripts"
 )
 
-func (lc *LocalCommand) run(task *templateTY.Task) error {
+func (lc *LocalCommand) run(task *templateTY.Task) (interface{}, error) {
 	cfg := commandTY.InputConfig{}
 
 	err := formatterUtils.YamlInterfaceToStruct(task.Input, &cfg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for _, data := range cfg.Data {
 		err := lc.executeCmd(task, data)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func (lc *LocalCommand) executeCmd(task *templateTY.Task, data interface{}) error {

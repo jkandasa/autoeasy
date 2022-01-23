@@ -23,11 +23,11 @@ func List(opts []client.ListOption) (*osroutev1.RouteList, error) {
 	return routeList, nil
 }
 
-func Get(name string) (*osroutev1.Route, error) {
+func Get(name, namespace string) (*osroutev1.Route, error) {
 	route := &osroutev1.Route{}
 	namespacedName := types.NamespacedName{
 		Name:      name,
-		Namespace: "",
+		Namespace: namespace,
 	}
 	err := store.K8SClient.Get(context.Background(), namespacedName, route)
 	if err != nil {

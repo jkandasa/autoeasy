@@ -72,7 +72,7 @@ func Load(dir string) error {
 
 		// if disabled, do not include
 		if cfg.Disabled {
-			zap.L().Info("suite disabled", zap.String("filename", cfg.FileName))
+			zap.L().Info("suite disabled", zap.String("filename", cfg.FileName), zap.String("name", cfg.Name))
 			continue
 		}
 
@@ -104,17 +104,17 @@ func runExecution(exeCfg *suiteTY.SuiteConfig) error {
 		}
 
 		if task.Disabled {
-			zap.L().Info("task disabled", zap.String("taskName", task.Name), zap.String("template", task.Template))
+			zap.L().Info("task disabled", zap.String("taskName", task.Name), zap.String("description", task.Description), zap.String("template", task.Template))
 			continue
 		}
 
-		zap.L().Info("about to execute a task", zap.String("taskName", task.Name), zap.String("template", task.Template))
+		zap.L().Info("about to execute a task", zap.String("taskName", task.Name), zap.String("description", task.Description), zap.String("template", task.Template))
 		startTime := time.Now()
 		err := runTask(exeCfg, &task)
 		if err != nil {
 			return err
 		}
-		zap.L().Info("task execution completed", zap.String("taskName", task.Name), zap.String("template", task.Template), zap.String("timeTaken", time.Since(startTime).String()))
+		zap.L().Info("task execution completed", zap.String("taskName", task.Name), zap.String("description", task.Description), zap.String("template", task.Template), zap.String("timeTaken", time.Since(startTime).String()))
 	}
 	return nil
 }
@@ -155,6 +155,11 @@ func runTask(exeCfg *suiteTY.SuiteConfig, task *suiteTY.Task) error {
 	}
 	if tplTask == nil {
 		return fmt.Errorf("task not available in the template. templateName:%s, taskName:%s", task.Template, task.Name)
+	}
+
+	// update description from suite, if available
+	if task.Description != "" {
+		tplTask.Description = task.Description
 	}
 
 	// execute task

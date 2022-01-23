@@ -3,6 +3,7 @@ package execute
 import (
 	"fmt"
 
+	dataRepoSVC "github.com/jkandasa/autoeasy/pkg/service/data_repository"
 	providerSVC "github.com/jkandasa/autoeasy/pkg/service/provider"
 	templateTY "github.com/jkandasa/autoeasy/pkg/types/template"
 	"go.uber.org/zap"
@@ -18,7 +19,7 @@ func run(task *templateTY.Task) error {
 	}
 
 	// execute task
-	err := provider.Execute(task)
+	data, err := provider.Execute(task)
 	if err != nil {
 		zap.L().Error("error on a task", zap.String("taskName", task.Name), zap.String("template", task.Template), zap.Error(err))
 		switch task.OnFailure {
@@ -29,10 +30,21 @@ func run(task *templateTY.Task) error {
 			return err
 
 		case templateTY.OnFailureRepeat:
-			err = provider.Execute(task)
-			return err
+			data, err = provider.Execute(task)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
+	if len(task.Store) > 0 {
+		for _, store := range task.Store {
+			if data == nil {
+				dataRepoSVC.Add(store.Key, "")
+			} else {
+				dataRepoSVC.AddWithStore(store, data)
+			}
+		}
+	}
 	return nil
 }

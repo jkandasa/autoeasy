@@ -11,31 +11,31 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func Run(cfg *openshiftTY.ProviderConfig) error {
+func Run(cfg *openshiftTY.ProviderConfig) (interface{}, error) {
 	switch cfg.Function {
 	case openshiftTY.FuncAdd:
 		if len(cfg.Data) == 0 {
-			return fmt.Errorf("no data supplied. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
+			return nil, fmt.Errorf("no data supplied. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
 		}
-		return add(cfg)
+		return nil, add(cfg)
 
 	case openshiftTY.FuncKeepOnly, openshiftTY.FuncRemove:
 		if len(cfg.Data) == 0 {
-			return fmt.Errorf("no data supplied. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
+			return nil, fmt.Errorf("no data supplied. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
 		}
 		fallthrough
 	case openshiftTY.FuncRemoveAll:
-		return performDelete(cfg)
+		return nil, performDelete(cfg)
 
 	case openshiftTY.FuncWaitForReady:
 		if len(cfg.Data) == 0 {
-			return fmt.Errorf("no data supplied. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
+			return nil, fmt.Errorf("no data supplied. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
 		}
-		return waitForReady(cfg)
+		return nil, waitForReady(cfg)
 
 	}
 
-	return fmt.Errorf("unknown function. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
+	return nil, fmt.Errorf("unknown function. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
 }
 
 func waitForReady(cfg *openshiftTY.ProviderConfig) error {

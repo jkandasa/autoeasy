@@ -1,6 +1,7 @@
 package task
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/jkandasa/autoeasy/pkg/utils"
@@ -12,17 +13,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func Run(cfg *openshiftTY.ProviderConfig) error {
+func Run(cfg *openshiftTY.ProviderConfig) (interface{}, error) {
 	switch cfg.Function {
 	case openshiftTY.FuncAdd:
-		return add(cfg)
+		return nil, add(cfg)
 
 	case openshiftTY.FuncKeepOnly, openshiftTY.FuncRemove, openshiftTY.FuncRemoveAll:
-		return performDelete(cfg)
+		return nil, performDelete(cfg)
 
+	default:
+		return nil, fmt.Errorf("invalid function. kind:%s, function:%s", cfg.Kind, cfg.Function)
 	}
 
-	return nil
 }
 
 func performDelete(cfg *openshiftTY.ProviderConfig) error {

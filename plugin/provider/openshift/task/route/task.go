@@ -1,6 +1,7 @@
 package task
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/jkandasa/autoeasy/pkg/utils"
@@ -11,25 +12,41 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func Run(cfg *openshiftTY.ProviderConfig) error {
+func Run(cfg *openshiftTY.ProviderConfig) (interface{}, error) {
 	switch cfg.Function {
 	case openshiftTY.FuncAdd:
 		if len(cfg.Data) == 0 {
-			return fmt.Errorf("no data supplied. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
+			return nil, fmt.Errorf("no data supplied. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
 		}
-		return add(cfg)
+		return nil, add(cfg)
 
 	case openshiftTY.FuncKeepOnly, openshiftTY.FuncRemove:
 		if len(cfg.Data) == 0 {
-			return fmt.Errorf("no data supplied. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
+			return nil, fmt.Errorf("no data supplied. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
 		}
 		fallthrough
 	case openshiftTY.FuncRemoveAll:
-		return performDelete(cfg)
+		return nil, performDelete(cfg)
 
+	case openshiftTY.FuncGet:
+		return get(cfg)
 	}
 
-	return fmt.Errorf("unknown function. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
+	return nil, fmt.Errorf("unknown function. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
+}
+
+func get(cfg *openshiftTY.ProviderConfig) (interface{}, error) {
+	cfgRaw := cfg.Data[0]
+	routeCfg, ok := cfgRaw.(map[string]interface{})
+	if !ok {
+		return nil, errors.New("invalid data format. expects slice of map[string]interface{}")
+	}
+
+	metadata, err := utils.GetObjectMeta(routeCfg)
+	if err != nil {
+		zap.L().Fatal("error on getting object meta", zap.Any("metadata", metadata), zap.Error(err))
+	}
+	return routeAPI.Get(metadata.Name, metadata.Namespace)
 }
 
 func performDelete(cfg *openshiftTY.ProviderConfig) error {

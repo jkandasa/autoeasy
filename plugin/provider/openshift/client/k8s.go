@@ -6,6 +6,7 @@ import (
 
 	jaegerv1 "github.com/jaegertracing/jaeger-operator/apis/v1"
 	osoperatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
+	routev1 "github.com/openshift/api/route/v1"
 	corsosv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 
 	openshiftTY "github.com/jkandasa/autoeasy/plugin/provider/openshift/types"
@@ -82,6 +83,11 @@ func registerSchema(client client.Client) error {
 	}
 
 	err = osoperatorv1alpha1.AddToScheme(client.Scheme())
+	if err != nil {
+		return err
+	}
+
+	err = routev1.AddToScheme(client.Scheme())
 	if err != nil {
 		return err
 	}

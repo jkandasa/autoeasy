@@ -80,11 +80,11 @@ func (o *Openshift) Close() error {
 	return nil
 }
 
-func (o *Openshift) Execute(task *templateTY.Task) error {
+func (o *Openshift) Execute(task *templateTY.Task) (interface{}, error) {
 	config := &openshiftTY.ProviderConfig{}
 	err := formatterUtils.YamlInterfaceToStruct(task.Input, config)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	switch config.Kind {
@@ -107,7 +107,7 @@ func (o *Openshift) Execute(task *templateTY.Task) error {
 		return taskRoute.Run(config)
 
 	default:
-		return fmt.Errorf("invalid kind:[%s]", config.Kind)
+		return nil, fmt.Errorf("invalid kind:[%s]", config.Kind)
 
 	}
 }
