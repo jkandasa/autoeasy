@@ -9,5 +9,5 @@ type Plugin interface {
 	Name() string
 	Start() error
 	Close() error
-	Execute(action *templateTY.Action) error
+	Execute(task *templateTY.Task) error
 }

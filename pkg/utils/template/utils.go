@@ -31,9 +31,10 @@ func Execute(templateString string, variables map[string]interface{}) (string, e
 
 func getFuncMap() template.FuncMap {
 	return template.FuncMap{
-		"now":  time.Now,
-		"yaml": toYaml,
-		"env":  getEnv,
+		"now":   time.Now,
+		"yaml":  toYaml,
+		"env":   getEnv,
+		"store": getValueFromRepo,
 	}
 }
 
@@ -47,5 +48,9 @@ func toYaml(v interface{}) string {
 }
 
 func getEnv(v interface{}) string {
+	return os.Getenv(fmt.Sprintf("%s", v))
+}
+
+func getValueFromRepo(v interface{}) string {
 	return os.Getenv(fmt.Sprintf("%s", v))
 }

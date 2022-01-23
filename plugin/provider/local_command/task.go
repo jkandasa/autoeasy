@@ -20,16 +20,16 @@ const (
 	generatedScriptDir          = "./generated_scripts"
 )
 
-func (lc *LocalCommand) run(action *templateTY.Action) error {
+func (lc *LocalCommand) run(task *templateTY.Task) error {
 	cfg := commandTY.InputConfig{}
 
-	err := formatterUtils.YamlInterfaceToStruct(action.Input, &cfg)
+	err := formatterUtils.YamlInterfaceToStruct(task.Input, &cfg)
 	if err != nil {
 		return err
 	}
 
 	for _, data := range cfg.Data {
-		err := lc.executeCmd(action, data)
+		err := lc.executeCmd(task, data)
 		if err != nil {
 			return err
 		}
@@ -37,13 +37,13 @@ func (lc *LocalCommand) run(action *templateTY.Action) error {
 	return nil
 }
 
-func (lc *LocalCommand) executeCmd(action *templateTY.Action, data interface{}) error {
+func (lc *LocalCommand) executeCmd(task *templateTY.Task, data interface{}) error {
 	cmd := commandTY.Command{}
 	err := formatterUtils.YamlInterfaceToStruct(data, &cmd)
 	if err != nil {
 		return err
 	}
-	zap.L().Debug("executing a local command", zap.String("actionName", action.Name), zap.String("command", cmd.Command))
+	zap.L().Debug("executing a local command", zap.String("taskName", task.Name), zap.String("command", cmd.Command))
 
 	if cmd.Timeout <= 0 {
 		cmd.Timeout = lc.Config.Timeout
@@ -71,7 +71,7 @@ func (lc *LocalCommand) executeCmd(action *templateTY.Action, data interface{}) 
 
 	// execute command
 	command := commandUtils.Command{
-		Name:                 action.Name,
+		Name:                 task.Name,
 		Command:              cmd.Command,
 		Args:                 cmd.Args,
 		Env:                  getEnv(cmd.Env),
@@ -106,14 +106,14 @@ func (lc *LocalCommand) executeCmd(action *templateTY.Action, data interface{}) 
 		// command details
 		cmdDetails := fmt.Sprintf(`
 -----------------COMMAND------------------
-cmd:%s, action:%s, template:%s
+cmd:%s, task:%s, template:%s
 -----------------BEGINING-----------------
 %s
 -------------------END--------------------
 
 
 `,
-			cmd.Command, action.Name, action.Template, errorOutput)
+			cmd.Command, task.Name, task.Template, errorOutput)
 		err = fileUtils.AppendFile(lc.Config.Error.Dir, lc.Config.Error.Filename, []byte(cmdDetails))
 		if err != nil {
 			return nil

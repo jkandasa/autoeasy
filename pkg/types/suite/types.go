@@ -16,7 +16,7 @@ type SuiteConfig struct {
 	Disabled  bool                 `yaml:"disabled"`
 	Default   Default              `yaml:"default"`
 	Variables variableTY.Variables `yaml:"variables"`
-	Actions   []Action             `yaml:"actions"`
+	Tasks     []Task               `yaml:"tasks"`
 	FileName  string               `yaml:"-"`
 }
 
@@ -25,7 +25,7 @@ type Default struct {
 	VariablesName []string `yaml:"variables_name"`
 }
 
-type Action struct {
+type Task struct {
 	Name      string               `yaml:"name"`
 	Template  string               `yaml:"template"`
 	Variables variableTY.Variables `yaml:"variables"`

@@ -8,8 +8,8 @@ import (
 	"go.uber.org/zap"
 )
 
-func run(action *templateTY.Action) error {
-	providerName := action.Provider
+func run(task *templateTY.Task) error {
+	providerName := task.Provider
 
 	// get provider instance
 	provider := providerSVC.GetProvider(providerName)
@@ -17,11 +17,11 @@ func run(action *templateTY.Action) error {
 		return fmt.Errorf("provider not available. providerName:[%s]", providerName)
 	}
 
-	// execute action
-	err := provider.Execute(action)
+	// execute task
+	err := provider.Execute(task)
 	if err != nil {
-		zap.L().Error("error on a action", zap.String("actionName", action.Name), zap.String("template", action.Template), zap.Error(err))
-		switch action.OnFailure {
+		zap.L().Error("error on a task", zap.String("taskName", task.Name), zap.String("template", task.Template), zap.Error(err))
+		switch task.OnFailure {
 		case templateTY.OnFailureContinue:
 			return nil
 
@@ -29,7 +29,7 @@ func run(action *templateTY.Action) error {
 			return err
 
 		case templateTY.OnFailureRepeat:
-			err = provider.Execute(action)
+			err = provider.Execute(task)
 			return err
 		}
 	}

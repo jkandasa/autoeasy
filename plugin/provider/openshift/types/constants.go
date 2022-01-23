@@ -1,7 +1,7 @@
 package types
 
 const (
-	// actions
+	// functions
 	FuncAdd          = "add"
 	FuncRemove       = "remove"
 	FuncRemoveAll    = "remove_all"
@@ -15,4 +15,5 @@ const (
 	KindCatalogSource            = "CatalogSource"
 	KindNamespace                = "Namespace"
 	KindDeployment               = "Deployment"
+	KindRoute                    = "Route"
 )

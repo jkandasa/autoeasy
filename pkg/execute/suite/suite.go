@@ -84,7 +84,7 @@ func Load(dir string) error {
 
 func Execute() error {
 	for _, cfg := range executionConfigs {
-		zap.L().Info("about to execute a suite", zap.String("name", cfg.Name), zap.String("filename", cfg.FileName), zap.Int("numbeOfAction", len(cfg.Actions)))
+		zap.L().Info("about to execute a suite", zap.String("name", cfg.Name), zap.String("filename", cfg.FileName), zap.Int("numbeOfTask", len(cfg.Tasks)))
 		startTime := time.Now()
 		err := runExecution(&cfg)
 		if err != nil {
@@ -97,37 +97,37 @@ func Execute() error {
 
 func runExecution(exeCfg *suiteTY.SuiteConfig) error {
 	// TODO: load default variables
-	for _, action := range exeCfg.Actions {
+	for _, task := range exeCfg.Tasks {
 		// update template
-		if action.Template == "" {
-			action.Template = exeCfg.Default.TemplateName
+		if task.Template == "" {
+			task.Template = exeCfg.Default.TemplateName
 		}
 
-		if action.Disabled {
-			zap.L().Info("action disabled", zap.String("actionName", action.Name), zap.String("template", action.Template))
+		if task.Disabled {
+			zap.L().Info("task disabled", zap.String("taskName", task.Name), zap.String("template", task.Template))
 			continue
 		}
 
-		zap.L().Info("about to execute an action", zap.String("actionName", action.Name), zap.String("template", action.Template))
+		zap.L().Info("about to execute a task", zap.String("taskName", task.Name), zap.String("template", task.Template))
 		startTime := time.Now()
-		err := runAction(exeCfg, &action)
+		err := runTask(exeCfg, &task)
 		if err != nil {
 			return err
 		}
-		zap.L().Info("action execution completed", zap.String("actionName", action.Name), zap.String("template", action.Template), zap.String("timeTaken", time.Since(startTime).String()))
+		zap.L().Info("task execution completed", zap.String("taskName", task.Name), zap.String("template", task.Template), zap.String("timeTaken", time.Since(startTime).String()))
 	}
 	return nil
 }
 
-func runAction(exeCfg *suiteTY.SuiteConfig, action *suiteTY.Action) error {
+func runTask(exeCfg *suiteTY.SuiteConfig, task *suiteTY.Task) error {
 	// get template variables
-	rawTemplate, err := templateStore.Get(action.Template)
+	rawTemplate, err := templateStore.Get(task.Template)
 	if err != nil {
 		return err
 	}
 
 	// update variables
-	vars, err := updateVariables(exeCfg.Default.VariablesName, exeCfg.Variables, action.Variables)
+	vars, err := updateVariables(exeCfg.Default.VariablesName, exeCfg.Variables, task.Variables)
 	if err != nil {
 		return err
 	}
@@ -145,20 +145,20 @@ func runAction(exeCfg *suiteTY.SuiteConfig, action *suiteTY.Action) error {
 		return err
 	}
 
-	// get tplAction from the template
-	var tplAction *templateTY.Action
-	for _, a := range tpl.Actions {
-		if a.Name == action.Name {
-			tplAction = &a
+	// get tplTask from the template
+	var tplTask *templateTY.Task
+	for _, a := range tpl.Tasks {
+		if a.Name == task.Name {
+			tplTask = &a
 			break
 		}
 	}
-	if tplAction == nil {
-		return fmt.Errorf("action not available in the template. templateName:%s, actionName:%s", action.Template, action.Name)
+	if tplTask == nil {
+		return fmt.Errorf("task not available in the template. templateName:%s, taskName:%s", task.Template, task.Name)
 	}
 
-	// execute action
-	err = run(tplAction)
+	// execute task
+	err = run(tplTask)
 	return err
 }
 

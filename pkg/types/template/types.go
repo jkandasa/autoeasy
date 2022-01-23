@@ -14,11 +14,11 @@ type RawTemplate struct {
 }
 
 type Template struct {
-	Name    string   `yaml:"name"`
-	Actions []Action `yaml:"actions"`
+	Name  string `yaml:"name"`
+	Tasks []Task `yaml:"tasks"`
 }
 
-type Action struct {
+type Task struct {
 	Name      string                 `yaml:"name"`
 	Template  string                 `yaml:"template"`
 	OnFailure string                 `yaml:"on_failure"`

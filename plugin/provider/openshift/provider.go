@@ -1,21 +1,22 @@
 package openshift
 
 // update defaults
-// action.Config.TimeoutConfig.UpdateDefaults()
+// task.Config.TimeoutConfig.UpdateDefaults()
 
 import (
 	"fmt"
 
 	templateTY "github.com/jkandasa/autoeasy/pkg/types/template"
 	formatterUtils "github.com/jkandasa/autoeasy/pkg/utils/formatter"
-	axnCS "github.com/jkandasa/autoeasy/plugin/provider/openshift/action/catalog_source"
-	axnDeployment "github.com/jkandasa/autoeasy/plugin/provider/openshift/action/deployment"
-	axnICSP "github.com/jkandasa/autoeasy/plugin/provider/openshift/action/image_content_source_policy"
-	axnNS "github.com/jkandasa/autoeasy/plugin/provider/openshift/action/namespace"
-	axnSubscription "github.com/jkandasa/autoeasy/plugin/provider/openshift/action/subscription"
 	clusterAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/cluster"
 	k8s "github.com/jkandasa/autoeasy/plugin/provider/openshift/client"
 	OpenshiftStore "github.com/jkandasa/autoeasy/plugin/provider/openshift/store"
+	taskCS "github.com/jkandasa/autoeasy/plugin/provider/openshift/task/catalog_source"
+	taskDeployment "github.com/jkandasa/autoeasy/plugin/provider/openshift/task/deployment"
+	taskICSP "github.com/jkandasa/autoeasy/plugin/provider/openshift/task/image_content_source_policy"
+	taskNS "github.com/jkandasa/autoeasy/plugin/provider/openshift/task/namespace"
+	taskRoute "github.com/jkandasa/autoeasy/plugin/provider/openshift/task/route"
+	taskSubscription "github.com/jkandasa/autoeasy/plugin/provider/openshift/task/subscription"
 	openshiftTY "github.com/jkandasa/autoeasy/plugin/provider/openshift/types"
 	providerPluginTY "github.com/jkandasa/autoeasy/plugin/provider/types"
 	"go.uber.org/zap"
@@ -45,7 +46,7 @@ func (o *Openshift) Name() string {
 func (o *Openshift) Start() error {
 	cfg := &o.Config
 	if !cfg.LoadClient {
-		zap.L().Info("loading openshift client is disabled. you have to load it via action")
+		zap.L().Info("loading openshift client is disabled. you have to load it via task")
 		return nil
 	}
 
@@ -79,28 +80,31 @@ func (o *Openshift) Close() error {
 	return nil
 }
 
-func (o *Openshift) Execute(action *templateTY.Action) error {
+func (o *Openshift) Execute(task *templateTY.Task) error {
 	config := &openshiftTY.ProviderConfig{}
-	err := formatterUtils.YamlInterfaceToStruct(action.Input, config)
+	err := formatterUtils.YamlInterfaceToStruct(task.Input, config)
 	if err != nil {
 		return err
 	}
 
 	switch config.Kind {
 	case openshiftTY.KindCatalogSource:
-		return axnCS.Run(config)
+		return taskCS.Run(config)
 
 	case openshiftTY.KindImageContentSourcePolicy:
-		return axnICSP.Run(config)
+		return taskICSP.Run(config)
 
 	case openshiftTY.KindNamespace:
-		return axnNS.Run(config)
+		return taskNS.Run(config)
 
 	case openshiftTY.KindSubscription:
-		return axnSubscription.Run(config)
+		return taskSubscription.Run(config)
 
 	case openshiftTY.KindDeployment:
-		return axnDeployment.Run(config)
+		return taskDeployment.Run(config)
+
+	case openshiftTY.KindRoute:
+		return taskRoute.Run(config)
 
 	default:
 		return fmt.Errorf("invalid kind:[%s]", config.Kind)

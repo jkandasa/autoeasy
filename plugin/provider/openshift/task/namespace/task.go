@@ -1,4 +1,4 @@
-package action
+package task
 
 import (
 	"github.com/jkandasa/autoeasy/pkg/utils"

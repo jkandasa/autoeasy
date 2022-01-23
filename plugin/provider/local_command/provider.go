@@ -37,6 +37,6 @@ func (lc *LocalCommand) Close() error {
 	return nil
 }
 
-func (lc *LocalCommand) Execute(action *templateTY.Action) error {
-	return lc.run(action)
+func (lc *LocalCommand) Execute(task *templateTY.Task) error {
+	return lc.run(task)
 }

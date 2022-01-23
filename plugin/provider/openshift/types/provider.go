@@ -36,11 +36,11 @@ func (p *PluginConfig) Validate() error {
 type ProviderConfig struct {
 	Kind     string        `yaml:"kind"`
 	Function string        `yaml:"function"`
-	Config   ActionConfig  `yaml:"config"`
+	Config   TaskConfig    `yaml:"config"`
 	Data     []interface{} `yaml:"data"`
 }
 
-type ActionConfig struct {
+type TaskConfig struct {
 	Recreate      bool          `yaml:"recreate"`
 	TimeoutConfig TimeoutConfig `yaml:"timeout_config"`
 }

@@ -1,4 +1,4 @@
-package action
+package task
 
 import (
 	"github.com/jkandasa/autoeasy/pkg/utils"
@@ -74,13 +74,13 @@ func delete(cfg *openshiftTY.ProviderConfig, items []v1alpha1.ImageContentSource
 	return waitForNodes(cfg)
 }
 
-func add(action *openshiftTY.ProviderConfig) error {
-	if len(action.Data) == 0 {
+func add(task *openshiftTY.ProviderConfig) error {
+	if len(task.Data) == 0 {
 		// TODO: report error
 		return nil
 	}
 
-	for _, cfgRaw := range action.Data {
+	for _, cfgRaw := range task.Data {
 		icspCfg, ok := cfgRaw.(map[string]interface{})
 		if !ok {
 			continue
@@ -103,7 +103,7 @@ func add(action *openshiftTY.ProviderConfig) error {
 			if icsp.ObjectMeta.Name == metadata.Name {
 				zap.L().Debug("imageContentSourcePolicy exists", zap.String("name", metadata.Name))
 				found = true
-				if action.Config.Recreate {
+				if task.Config.Recreate {
 					zap.L().Debug("imageContentSourcePolicy recreate enabled", zap.String("name", metadata.Name))
 					err = icspAPI.Delete(&icsp)
 					if err != nil {
@@ -124,7 +124,7 @@ func add(action *openshiftTY.ProviderConfig) error {
 		}
 	}
 
-	return waitForNodes(action)
+	return waitForNodes(task)
 }
 
 func waitForNodes(cfg *openshiftTY.ProviderConfig) error {

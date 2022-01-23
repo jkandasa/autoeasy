@@ -37,7 +37,7 @@ func init() {
 
 var executeCmd = &cobra.Command{
 	Use:   "execute",
-	Short: "executes the provided actions",
+	Short: "executes the provided tasks",
 	Example: `  # simple
   autoeasy execute
 
@@ -93,7 +93,7 @@ var executeCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		// execute actions
+		// execute tasks
 		err = suiteStore.Execute()
 		if err != nil {
 			zap.L().Error("error on execution", zap.Error(err))
