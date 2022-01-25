@@ -115,7 +115,7 @@ func add(task *openshiftTY.ProviderConfig) error {
 			}
 		}
 		if !found {
-			err = icspAPI.Create(icspCfg)
+			err = icspAPI.CreateWithMap(icspCfg)
 			if err != nil {
 				zap.L().Fatal("error on creating imageContentSourcePolicy", zap.String("name", metadata.Name), zap.Error(err))
 			}

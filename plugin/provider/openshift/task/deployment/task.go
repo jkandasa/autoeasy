@@ -149,7 +149,7 @@ func add(cfg *openshiftTY.ProviderConfig) error {
 			}
 		}
 		if !found {
-			err = deploymentAPI.Create(deploymentCfg)
+			err = deploymentAPI.CreateWithMap(deploymentCfg)
 			if err != nil {
 				zap.L().Fatal("error on creating Deployment", zap.String("name", metadata.Name), zap.String("namespace", metadata.Namespace), zap.Error(err))
 			}

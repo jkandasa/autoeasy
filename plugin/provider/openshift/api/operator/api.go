@@ -66,7 +66,7 @@ func Uninstall(cfg map[string]interface{}) error {
 
 func Install(cfg map[string]interface{}, tc openshiftTY.TimeoutConfig) error {
 	// create subscription
-	err := subscriptionAPI.Create(cfg)
+	err := subscriptionAPI.CreateWithMap(cfg)
 	if err != nil {
 		return err
 	}

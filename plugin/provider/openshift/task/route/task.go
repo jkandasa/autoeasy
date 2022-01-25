@@ -135,7 +135,7 @@ func add(cfg *openshiftTY.ProviderConfig) error {
 			}
 		}
 		if !found {
-			err = routeAPI.Create(routeCfg)
+			err = routeAPI.CreateWithMap(routeCfg)
 			if err != nil {
 				zap.L().Fatal("error on creating Route", zap.String("name", metadata.Name), zap.String("namespace", metadata.Namespace), zap.Error(err))
 			}

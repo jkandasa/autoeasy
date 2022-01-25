@@ -14,11 +14,13 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/jaegertracing/jaeger-operator v1.29.1
 	github.com/json-iterator/go v1.1.12
+	github.com/mitchellh/mapstructure v1.4.2
 	github.com/mycontroller-org/server/v2 v2.0.0-20220109083514-246d4c820236
 	github.com/spf13/cobra v1.2.1
 	github.com/tidwall/gjson v1.10.2
 	github.com/tidwall/sjson v1.2.3
 	go.uber.org/zap v1.19.1
+	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/apimachinery v0.23.1
 	k8s.io/client-go v12.0.0+incompatible
@@ -42,7 +44,6 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
-	github.com/mitchellh/mapstructure v1.4.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/openshift/elasticsearch-operator v0.0.0-20210921091239-caf25067d56d // indirect
@@ -72,7 +73,6 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.63.2 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/klog/v2 v2.30.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20211115234752-e816edb12b65 // indirect
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b // indirect

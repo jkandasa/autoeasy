@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/jkandasa/autoeasy/pkg/utils"
+	formatterUtils "github.com/jkandasa/autoeasy/pkg/utils/formatter"
 	"github.com/jkandasa/autoeasy/plugin/provider/openshift/store"
-	mcUtils "github.com/mycontroller-org/server/v2/pkg/utils"
 	corsosv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,11 +45,15 @@ func DeleteOfAll(catalogSource *corsosv1alpha1.CatalogSource, opts []client.Dele
 	return store.K8SClient.DeleteAllOf(context.Background(), catalogSource, opts...)
 }
 
-func Create(cfg map[string]interface{}) error {
+func CreateWithMap(cfg map[string]interface{}) error {
 	catalogSource := &corsosv1alpha1.CatalogSource{}
-	err := mcUtils.MapToStruct(mcUtils.TagNameJSON, cfg, catalogSource)
+	err := formatterUtils.JsonMapToStruct(cfg, catalogSource)
 	if err != nil {
 		return err
 	}
+	return store.K8SClient.Create(context.Background(), catalogSource)
+}
+
+func Create(catalogSource *corsosv1alpha1.CatalogSource) error {
 	return store.K8SClient.Create(context.Background(), catalogSource)
 }

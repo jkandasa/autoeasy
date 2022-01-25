@@ -14,7 +14,6 @@ import (
 const (
 	actionAdd    = "add"
 	actionDelete = "delete"
-	actionGet    = "get"
 )
 
 var (

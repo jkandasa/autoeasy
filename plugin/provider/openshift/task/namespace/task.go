@@ -118,7 +118,7 @@ func add(cfg *openshiftTY.ProviderConfig) error {
 			}
 		}
 		if !found {
-			err = nsAPI.Create(nsCfg)
+			err = nsAPI.CreateWithMap(nsCfg)
 			if err != nil {
 				zap.L().Fatal("error on creating Namespace", zap.String("name", metadata.Name), zap.String("namespace", metadata.Namespace), zap.Error(err))
 			}

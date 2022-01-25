@@ -3,9 +3,9 @@ package api
 import (
 	"context"
 
-	"github.com/jkandasa/autoeasy/plugin/provider/openshift/store"
 	"github.com/jkandasa/autoeasy/pkg/utils"
-	mcUtils "github.com/mycontroller-org/server/v2/pkg/utils"
+	formatterUtils "github.com/jkandasa/autoeasy/pkg/utils/formatter"
+	"github.com/jkandasa/autoeasy/plugin/provider/openshift/store"
 	osoperatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -45,9 +45,13 @@ func DeleteOfAll(icsp *osoperatorv1alpha1.ImageContentSourcePolicy, opts []clien
 	return store.K8SClient.DeleteAllOf(context.Background(), icsp, opts...)
 }
 
-func Create(cfg map[string]interface{}) error {
+func Create(icsp *osoperatorv1alpha1.ImageContentSourcePolicy) error {
+	return store.K8SClient.Create(context.Background(), icsp)
+}
+
+func CreateWithMap(cfg map[string]interface{}) error {
 	icsp := &osoperatorv1alpha1.ImageContentSourcePolicy{}
-	err := mcUtils.MapToStruct(mcUtils.TagNameJSON, cfg, icsp)
+	err := formatterUtils.JsonMapToStruct(cfg, icsp)
 	if err != nil {
 		return err
 	}

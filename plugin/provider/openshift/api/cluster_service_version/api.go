@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/jkandasa/autoeasy/pkg/utils"
+	formatterUtils "github.com/jkandasa/autoeasy/pkg/utils/formatter"
 	"github.com/jkandasa/autoeasy/plugin/provider/openshift/store"
 	openshiftTY "github.com/jkandasa/autoeasy/plugin/provider/openshift/types"
-	mcUtils "github.com/mycontroller-org/server/v2/pkg/utils"
 	corsosv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -46,9 +46,13 @@ func DeleteOfAll(csv *corsosv1alpha1.ClusterServiceVersion, opts []client.Delete
 	return store.K8SClient.DeleteAllOf(context.Background(), csv, opts...)
 }
 
-func Create(cfg map[string]interface{}) error {
+func Create(csv *corsosv1alpha1.ClusterServiceVersion) error {
+	return store.K8SClient.Create(context.Background(), csv)
+}
+
+func CreateWithMap(cfg map[string]interface{}) error {
 	csv := &corsosv1alpha1.ClusterServiceVersion{}
-	err := mcUtils.MapToStruct(mcUtils.TagNameJSON, cfg, csv)
+	err := formatterUtils.JsonMapToStruct(cfg, csv)
 	if err != nil {
 		return err
 	}

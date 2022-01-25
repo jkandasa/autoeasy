@@ -1,5 +1,7 @@
 package types
 
+import "fmt"
+
 type Variables map[string]interface{}
 
 func (v Variables) Merge(variables Variables) {
@@ -8,6 +10,12 @@ func (v Variables) Merge(variables Variables) {
 	}
 	for key, val := range variables {
 		v[key] = val
+	}
+}
+
+func (v Variables) Print() {
+	for k, val := range v {
+		fmt.Println(k, val)
 	}
 }
 

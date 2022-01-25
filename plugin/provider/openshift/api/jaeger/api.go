@@ -4,10 +4,10 @@ import (
 	"context"
 
 	jaegerv1 "github.com/jaegertracing/jaeger-operator/apis/v1"
-	"github.com/jkandasa/autoeasy/plugin/provider/openshift/store"
 	"github.com/jkandasa/autoeasy/pkg/utils"
+	formatterUtils "github.com/jkandasa/autoeasy/pkg/utils/formatter"
 	funcUtils "github.com/jkandasa/autoeasy/pkg/utils/function"
-	mcUtils "github.com/mycontroller-org/server/v2/pkg/utils"
+	"github.com/jkandasa/autoeasy/plugin/provider/openshift/store"
 
 	"go.uber.org/zap"
 
@@ -48,18 +48,28 @@ func DeleteOfAll(jaeger *jaegerv1.Jaeger, opts []client.DeleteAllOfOption) error
 	return store.K8SClient.DeleteAllOf(context.Background(), jaeger, opts...)
 }
 
-func Create(cfg map[string]interface{}) error {
+func Create(jaeger *jaegerv1.Jaeger) error {
+	return store.K8SClient.Create(context.Background(), jaeger)
+}
+
+func CreateWithMap(cfg map[string]interface{}) error {
 	jaeger := &jaegerv1.Jaeger{}
-	err := mcUtils.MapToStruct(mcUtils.TagNameJSON, cfg, jaeger)
+	err := formatterUtils.JsonMapToStruct(cfg, jaeger)
+	if err != nil {
+		return err
+	}
 	if err != nil {
 		return err
 	}
 	return store.K8SClient.Create(context.Background(), jaeger)
 }
 
-func CreateAndWait(cfg map[string]interface{}) error {
+func CreateWithMapAndWait(cfg map[string]interface{}) error {
 	jaeger := &jaegerv1.Jaeger{}
-	err := mcUtils.MapToStruct(mcUtils.TagNameJSON, cfg, jaeger)
+	err := formatterUtils.JsonMapToStruct(cfg, jaeger)
+	if err != nil {
+		return err
+	}
 	if err != nil {
 		return err
 	}
@@ -67,7 +77,6 @@ func CreateAndWait(cfg map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
-
 	executeFunc := func() (bool, error) {
 		return isRunning(jaeger.Name, jaeger.Namespace)
 	}

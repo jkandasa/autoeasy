@@ -20,6 +20,7 @@ type SuiteConfig struct {
 	Variables   variableTY.Variables `yaml:"variables"`
 	Tasks       []Task               `yaml:"tasks"`
 	FileName    string               `yaml:"-"`
+	RawData     string               `yaml:"-"`
 }
 
 type Default struct {

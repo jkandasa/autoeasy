@@ -3,9 +3,9 @@ package api
 import (
 	"context"
 
-	"github.com/jkandasa/autoeasy/plugin/provider/openshift/store"
 	"github.com/jkandasa/autoeasy/pkg/utils"
-	mcUtils "github.com/mycontroller-org/server/v2/pkg/utils"
+	formatterUtils "github.com/jkandasa/autoeasy/pkg/utils/formatter"
+	"github.com/jkandasa/autoeasy/plugin/provider/openshift/store"
 	corsosv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -44,11 +44,15 @@ func DeleteOfAll(subscription *corsosv1alpha1.Subscription, opts []client.Delete
 	return store.K8SClient.DeleteAllOf(context.Background(), subscription, opts...)
 }
 
-func Create(cfg map[string]interface{}) error {
+func CreateWithMap(cfg map[string]interface{}) error {
 	subscription := &corsosv1alpha1.Subscription{}
-	err := mcUtils.MapToStruct(mcUtils.TagNameJSON, cfg, subscription)
+	err := formatterUtils.JsonMapToStruct(cfg, subscription)
 	if err != nil {
 		return err
 	}
+	return store.K8SClient.Create(context.Background(), subscription)
+}
+
+func Create(subscription *corsosv1alpha1.Subscription) error {
 	return store.K8SClient.Create(context.Background(), subscription)
 }

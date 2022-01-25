@@ -1,5 +1,9 @@
 package types
 
+import (
+	variableTY "github.com/jkandasa/autoeasy/pkg/types/variable"
+)
+
 const (
 	// OnFailure
 	OnFailureExit     = "exit"
@@ -8,14 +12,24 @@ const (
 )
 
 type RawTemplate struct {
-	Name      string `yaml:"name"`
-	FileName  string `yaml:"-"`
-	RawString string `yaml:"-"`
+	Name      string               `yaml:"name"`
+	FileName  string               `yaml:"-"`
+	RawString string               `yaml:"-"`
+	Variables variableTY.Variables `yaml:"variables"`
+}
+
+// TemplatePre used to fetch variables before applying the template
+type TemplatePre struct {
+	Name        string               `yaml:"name"`
+	Description string               `yaml:"description"`
+	Variables   variableTY.Variables `yaml:"variables"`
 }
 
 type Template struct {
-	Name  string `yaml:"name"`
-	Tasks []Task `yaml:"tasks"`
+	Name        string               `yaml:"name"`
+	Description string               `yaml:"description"`
+	Variables   variableTY.Variables `yaml:"variables"`
+	Tasks       []Task               `yaml:"tasks"`
 }
 
 type Task struct {

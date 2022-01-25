@@ -7,9 +7,9 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 
 	"github.com/jkandasa/autoeasy/pkg/utils"
+	formatterUtils "github.com/jkandasa/autoeasy/pkg/utils/formatter"
 	funcUtils "github.com/jkandasa/autoeasy/pkg/utils/function"
 	"github.com/jkandasa/autoeasy/plugin/provider/openshift/store"
-	mcUtils "github.com/mycontroller-org/server/v2/pkg/utils"
 
 	openshiftTY "github.com/jkandasa/autoeasy/plugin/provider/openshift/types"
 	"k8s.io/apimachinery/pkg/types"
@@ -49,9 +49,13 @@ func DeleteOfAll(deployment *appsv1.Deployment, opts []client.DeleteAllOfOption)
 	return store.K8SClient.DeleteAllOf(context.Background(), deployment, opts...)
 }
 
-func Create(cfg map[string]interface{}) error {
+func Create(deployment *appsv1.Deployment) error {
+	return store.K8SClient.Create(context.Background(), deployment)
+}
+
+func CreateWithMap(cfg map[string]interface{}) error {
 	deployment := &appsv1.Deployment{}
-	err := mcUtils.MapToStruct(mcUtils.TagNameJSON, cfg, deployment)
+	err := formatterUtils.JsonMapToStruct(cfg, deployment)
 	if err != nil {
 		return err
 	}
