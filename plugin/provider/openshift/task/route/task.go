@@ -12,13 +12,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func Run(cfg *openshiftTY.ProviderConfig) (interface{}, error) {
+func Run(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) (interface{}, error) {
 	switch cfg.Function {
 	case openshiftTY.FuncAdd:
 		if len(cfg.Data) == 0 {
 			return nil, fmt.Errorf("no data supplied. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
 		}
-		return nil, add(cfg)
+		return nil, add(k8sClient, cfg)
 
 	case openshiftTY.FuncKeepOnly, openshiftTY.FuncRemove:
 		if len(cfg.Data) == 0 {
@@ -26,16 +26,16 @@ func Run(cfg *openshiftTY.ProviderConfig) (interface{}, error) {
 		}
 		fallthrough
 	case openshiftTY.FuncRemoveAll:
-		return nil, performDelete(cfg)
+		return nil, performDelete(k8sClient, cfg)
 
 	case openshiftTY.FuncGet:
-		return get(cfg)
+		return get(k8sClient, cfg)
 	}
 
 	return nil, fmt.Errorf("unknown function. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
 }
 
-func get(cfg *openshiftTY.ProviderConfig) (interface{}, error) {
+func get(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) (interface{}, error) {
 	cfgRaw := cfg.Data[0]
 	routeCfg, ok := cfgRaw.(map[string]interface{})
 	if !ok {
@@ -46,20 +46,20 @@ func get(cfg *openshiftTY.ProviderConfig) (interface{}, error) {
 	if err != nil {
 		zap.L().Fatal("error on getting object meta", zap.Any("metadata", metadata), zap.Error(err))
 	}
-	return routeAPI.Get(metadata.Name, metadata.Namespace)
+	return routeAPI.Get(k8sClient, metadata.Name, metadata.Namespace)
 }
 
-func performDelete(cfg *openshiftTY.ProviderConfig) error {
+func performDelete(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) error {
 	opts := []client.ListOption{
 		client.InNamespace(""),
 	}
-	routeList, err := routeAPI.List(opts)
+	routeList, err := routeAPI.List(k8sClient, opts)
 	if err != nil {
 		zap.L().Fatal("error on getting Route list", zap.Error(err))
 	}
 
 	if cfg.Function == openshiftTY.FuncRemoveAll {
-		return delete(cfg, routeList.Items)
+		return delete(k8sClient, cfg, routeList.Items)
 	} else if cfg.Function == openshiftTY.FuncRemove || cfg.Function == openshiftTY.FuncKeepOnly {
 		deletionList := make([]osroutev1.Route, 0)
 
@@ -79,18 +79,18 @@ func performDelete(cfg *openshiftTY.ProviderConfig) error {
 			}
 		}
 
-		return delete(cfg, deletionList)
+		return delete(k8sClient, cfg, deletionList)
 	}
 	return nil
 
 }
 
-func delete(cfg *openshiftTY.ProviderConfig, items []osroutev1.Route) error {
+func delete(k8sClient client.Client, cfg *openshiftTY.ProviderConfig, items []osroutev1.Route) error {
 	if len(items) == 0 {
 		return nil
 	}
 	for _, route := range items {
-		err := routeAPI.Delete(&route)
+		err := routeAPI.Delete(k8sClient, &route)
 		if err != nil {
 			return err
 		}
@@ -99,7 +99,7 @@ func delete(cfg *openshiftTY.ProviderConfig, items []osroutev1.Route) error {
 	return nil
 }
 
-func add(cfg *openshiftTY.ProviderConfig) error {
+func add(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) error {
 	for _, cfgRaw := range cfg.Data {
 		routeCfg, ok := cfgRaw.(map[string]interface{})
 		if !ok {
@@ -109,7 +109,7 @@ func add(cfg *openshiftTY.ProviderConfig) error {
 		opts := []client.ListOption{
 			client.InNamespace(""),
 		}
-		routeList, err := routeAPI.List(opts)
+		routeList, err := routeAPI.List(k8sClient, opts)
 		if err != nil {
 			zap.L().Fatal("error on getting Route list", zap.Error(err))
 		}
@@ -125,7 +125,7 @@ func add(cfg *openshiftTY.ProviderConfig) error {
 				found = true
 				if cfg.Config.Recreate {
 					zap.L().Debug("Route recreate enabled", zap.String("name", metadata.Name), zap.String("namespace", metadata.Namespace))
-					err = routeAPI.Delete(&route)
+					err = routeAPI.Delete(k8sClient, &route)
 					if err != nil {
 						return err
 					}
@@ -135,7 +135,7 @@ func add(cfg *openshiftTY.ProviderConfig) error {
 			}
 		}
 		if !found {
-			err = routeAPI.CreateWithMap(routeCfg)
+			err = routeAPI.CreateWithMap(k8sClient, routeCfg)
 			if err != nil {
 				zap.L().Fatal("error on creating Route", zap.String("name", metadata.Name), zap.String("namespace", metadata.Namespace), zap.Error(err))
 			}

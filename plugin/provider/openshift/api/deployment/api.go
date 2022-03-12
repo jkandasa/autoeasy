@@ -9,73 +9,72 @@ import (
 	"github.com/jkandasa/autoeasy/pkg/utils"
 	formatterUtils "github.com/jkandasa/autoeasy/pkg/utils/formatter"
 	funcUtils "github.com/jkandasa/autoeasy/pkg/utils/function"
-	"github.com/jkandasa/autoeasy/plugin/provider/openshift/store"
 
 	openshiftTY "github.com/jkandasa/autoeasy/plugin/provider/openshift/types"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func List(opts []client.ListOption) (*appsv1.DeploymentList, error) {
+func List(k8sClient client.Client, opts []client.ListOption) (*appsv1.DeploymentList, error) {
 	deploymentList := &appsv1.DeploymentList{}
-	err := store.K8SClient.List(context.Background(), deploymentList, opts...)
+	err := k8sClient.List(context.Background(), deploymentList, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return deploymentList, nil
 }
 
-func Get(name, namespace string) (*appsv1.Deployment, error) {
+func Get(k8sClient client.Client, name, namespace string) (*appsv1.Deployment, error) {
 	deployment := &appsv1.Deployment{}
 	namespacedName := types.NamespacedName{
 		Name:      name,
 		Namespace: namespace,
 	}
-	err := store.K8SClient.Get(context.Background(), namespacedName, deployment)
+	err := k8sClient.Get(context.Background(), namespacedName, deployment)
 	if err != nil {
 		return nil, err
 	}
 	return deployment, nil
 }
 
-func Delete(deployment *appsv1.Deployment) error {
-	return utils.IgnoreNotFoundError(store.K8SClient.Delete(context.Background(), deployment))
+func Delete(k8sClient client.Client, deployment *appsv1.Deployment) error {
+	return utils.IgnoreNotFoundError(k8sClient.Delete(context.Background(), deployment))
 }
 
-func DeleteOfAll(deployment *appsv1.Deployment, opts []client.DeleteAllOfOption) error {
+func DeleteOfAll(k8sClient client.Client, deployment *appsv1.Deployment, opts []client.DeleteAllOfOption) error {
 	if deployment == nil {
 		deployment = &appsv1.Deployment{}
 	}
-	return store.K8SClient.DeleteAllOf(context.Background(), deployment, opts...)
+	return k8sClient.DeleteAllOf(context.Background(), deployment, opts...)
 }
 
-func Create(deployment *appsv1.Deployment) error {
-	return store.K8SClient.Create(context.Background(), deployment)
+func Create(k8sClient client.Client, deployment *appsv1.Deployment) error {
+	return k8sClient.Create(context.Background(), deployment)
 }
 
-func CreateWithMap(cfg map[string]interface{}) error {
+func CreateWithMap(k8sClient client.Client, cfg map[string]interface{}) error {
 	deployment := &appsv1.Deployment{}
 	err := formatterUtils.JsonMapToStruct(cfg, deployment)
 	if err != nil {
 		return err
 	}
-	return store.K8SClient.Create(context.Background(), deployment)
+	return k8sClient.Create(context.Background(), deployment)
 }
 
 // wait for deployment
-func WaitForDeployments(deployments []string, namespace string, tc openshiftTY.TimeoutConfig) error {
+func WaitForDeployments(k8sClient client.Client, deployments []string, namespace string, tc openshiftTY.TimeoutConfig) error {
 	executeFunc := func() (bool, error) {
-		return isDeployed(deployments, namespace)
+		return isDeployed(k8sClient, deployments, namespace)
 	}
 	return funcUtils.ExecuteWithTimeoutAndContinuesSuccessCount(executeFunc, tc.Timeout, tc.ScanInterval, tc.ExpectedSuccessCount)
 }
 
-func isDeployed(deployments []string, namespace string) (bool, error) {
+func isDeployed(k8sClient client.Client, deployments []string, namespace string) (bool, error) {
 	// check deployment status
 	opts := []client.ListOption{
 		client.InNamespace(namespace),
 	}
-	deploymentList, err := List(opts)
+	deploymentList, err := List(k8sClient, opts)
 	if err != nil {
 		return false, err
 	}

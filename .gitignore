@@ -3,3 +3,4 @@ logs/*
 resources/*
 builds/*
 plugin.yaml
+inject_env.sh

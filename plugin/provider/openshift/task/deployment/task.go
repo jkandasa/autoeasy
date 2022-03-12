@@ -11,13 +11,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func Run(cfg *openshiftTY.ProviderConfig) (interface{}, error) {
+func Run(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) (interface{}, error) {
 	switch cfg.Function {
 	case openshiftTY.FuncAdd:
 		if len(cfg.Data) == 0 {
 			return nil, fmt.Errorf("no data supplied. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
 		}
-		return nil, add(cfg)
+		return nil, add(k8sClient, cfg)
 
 	case openshiftTY.FuncKeepOnly, openshiftTY.FuncRemove:
 		if len(cfg.Data) == 0 {
@@ -25,20 +25,20 @@ func Run(cfg *openshiftTY.ProviderConfig) (interface{}, error) {
 		}
 		fallthrough
 	case openshiftTY.FuncRemoveAll:
-		return nil, performDelete(cfg)
+		return nil, performDelete(k8sClient, cfg)
 
 	case openshiftTY.FuncWaitForReady:
 		if len(cfg.Data) == 0 {
 			return nil, fmt.Errorf("no data supplied. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
 		}
-		return nil, waitForReady(cfg)
+		return nil, waitForReady(k8sClient, cfg)
 
 	}
 
 	return nil, fmt.Errorf("unknown function. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
 }
 
-func waitForReady(cfg *openshiftTY.ProviderConfig) error {
+func waitForReady(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) error {
 	// get deployments detail
 	suppliedItems := utils.ToNamespacedNameSlice(cfg.Data)
 
@@ -55,7 +55,7 @@ func waitForReady(cfg *openshiftTY.ProviderConfig) error {
 
 	// verify status
 	for namespace, deployments := range items {
-		err := deploymentAPI.WaitForDeployments(deployments, namespace, cfg.Config.TimeoutConfig)
+		err := deploymentAPI.WaitForDeployments(k8sClient, deployments, namespace, cfg.Config.TimeoutConfig)
 		if err != nil {
 			return err
 		}
@@ -63,17 +63,17 @@ func waitForReady(cfg *openshiftTY.ProviderConfig) error {
 	return nil
 }
 
-func performDelete(cfg *openshiftTY.ProviderConfig) error {
+func performDelete(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) error {
 	opts := []client.ListOption{
 		client.InNamespace(""),
 	}
-	deploymentList, err := deploymentAPI.List(opts)
+	deploymentList, err := deploymentAPI.List(k8sClient, opts)
 	if err != nil {
 		zap.L().Fatal("error on getting Deployment list", zap.Error(err))
 	}
 
 	if cfg.Function == openshiftTY.FuncRemoveAll {
-		return delete(cfg, deploymentList.Items)
+		return delete(k8sClient, cfg, deploymentList.Items)
 	} else if cfg.Function == openshiftTY.FuncRemove || cfg.Function == openshiftTY.FuncKeepOnly {
 		deletionList := make([]appsv1.Deployment, 0)
 
@@ -93,18 +93,18 @@ func performDelete(cfg *openshiftTY.ProviderConfig) error {
 			}
 		}
 
-		return delete(cfg, deletionList)
+		return delete(k8sClient, cfg, deletionList)
 	}
 	return nil
 
 }
 
-func delete(cfg *openshiftTY.ProviderConfig, items []appsv1.Deployment) error {
+func delete(k8sClient client.Client, cfg *openshiftTY.ProviderConfig, items []appsv1.Deployment) error {
 	if len(items) == 0 {
 		return nil
 	}
 	for _, deployment := range items {
-		err := deploymentAPI.Delete(&deployment)
+		err := deploymentAPI.Delete(k8sClient, &deployment)
 		if err != nil {
 			return err
 		}
@@ -113,7 +113,7 @@ func delete(cfg *openshiftTY.ProviderConfig, items []appsv1.Deployment) error {
 	return nil
 }
 
-func add(cfg *openshiftTY.ProviderConfig) error {
+func add(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) error {
 	for _, cfgRaw := range cfg.Data {
 		deploymentCfg, ok := cfgRaw.(map[string]interface{})
 		if !ok {
@@ -123,7 +123,7 @@ func add(cfg *openshiftTY.ProviderConfig) error {
 		opts := []client.ListOption{
 			client.InNamespace(""),
 		}
-		deploymentList, err := deploymentAPI.List(opts)
+		deploymentList, err := deploymentAPI.List(k8sClient, opts)
 		if err != nil {
 			zap.L().Fatal("error on getting Deployment list", zap.Error(err))
 		}
@@ -139,7 +139,7 @@ func add(cfg *openshiftTY.ProviderConfig) error {
 				found = true
 				if cfg.Config.Recreate {
 					zap.L().Debug("Deployment recreate enabled", zap.String("name", metadata.Name), zap.String("namespace", metadata.Namespace))
-					err = deploymentAPI.Delete(&deployment)
+					err = deploymentAPI.Delete(k8sClient, &deployment)
 					if err != nil {
 						return err
 					}
@@ -149,12 +149,12 @@ func add(cfg *openshiftTY.ProviderConfig) error {
 			}
 		}
 		if !found {
-			err = deploymentAPI.CreateWithMap(deploymentCfg)
+			err = deploymentAPI.CreateWithMap(k8sClient, deploymentCfg)
 			if err != nil {
 				zap.L().Fatal("error on creating Deployment", zap.String("name", metadata.Name), zap.String("namespace", metadata.Namespace), zap.Error(err))
 			}
 			zap.L().Info("Deployment created", zap.String("name", metadata.Name), zap.String("namespace", metadata.Namespace))
-			err = deploymentAPI.WaitForDeployments([]string{metadata.Name}, metadata.Namespace, cfg.Config.TimeoutConfig)
+			err = deploymentAPI.WaitForDeployments(k8sClient, []string{metadata.Name}, metadata.Namespace, cfg.Config.TimeoutConfig)
 			if err != nil {
 				return err
 			}

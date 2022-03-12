@@ -11,6 +11,7 @@ import (
 	loggerSVC "github.com/jkandasa/autoeasy/pkg/service/logger"
 	providerSVC "github.com/jkandasa/autoeasy/pkg/service/provider"
 	"github.com/jkandasa/autoeasy/pkg/types"
+	templateUtils "github.com/jkandasa/autoeasy/pkg/utils/template"
 	"github.com/jkandasa/autoeasy/pkg/version"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -57,8 +58,15 @@ var executeCmd = &cobra.Command{
 			zap.L().Fatal("error on reading plugin config file", zap.String("plugin-config", pluginConfig), zap.Error(err))
 			return
 		}
+		// update environment variables in plugin file
+		updatedPluginConfig, err := templateUtils.Execute(string(bytes), nil)
+		if err != nil {
+			zap.L().Fatal("error on updating plugin environment variables", zap.Error(err))
+			return
+		}
+
 		pluginData := &types.PluginFile{}
-		err = yaml.Unmarshal(bytes, pluginData)
+		err = yaml.Unmarshal([]byte(updatedPluginConfig), pluginData)
 		if err != nil {
 			zap.L().Fatal("error on unmarshal plugin config file", zap.String("plugin-config", pluginConfig), zap.Error(err))
 			return

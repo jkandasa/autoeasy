@@ -10,30 +10,30 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func Run(cfg *openshiftTY.ProviderConfig) (interface{}, error) {
+func Run(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) (interface{}, error) {
 	switch cfg.Function {
 	case openshiftTY.FuncAdd:
-		return nil, add(cfg)
+		return nil, add(k8sClient, cfg)
 
 	case openshiftTY.FuncKeepOnly, openshiftTY.FuncRemove, openshiftTY.FuncRemoveAll:
-		return nil, performDelete(cfg)
+		return nil, performDelete(k8sClient, cfg)
 
 	}
 
 	return nil, nil
 }
 
-func performDelete(cfg *openshiftTY.ProviderConfig) error {
+func performDelete(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) error {
 	opts := []client.ListOption{
 		client.InNamespace(""),
 	}
-	nsList, err := nsAPI.List(opts)
+	nsList, err := nsAPI.List(k8sClient, opts)
 	if err != nil {
 		zap.L().Fatal("error on getting Namespace list", zap.Error(err))
 	}
 
 	if cfg.Function == openshiftTY.FuncRemoveAll {
-		return delete(cfg, nsList.Items)
+		return delete(k8sClient, cfg, nsList.Items)
 	} else if cfg.Function == openshiftTY.FuncRemoveAll || cfg.Function == openshiftTY.FuncKeepOnly {
 		deletionList := make([]corev1.Namespace, 0)
 
@@ -53,23 +53,23 @@ func performDelete(cfg *openshiftTY.ProviderConfig) error {
 			}
 		}
 
-		return delete(cfg, deletionList)
+		return delete(k8sClient, cfg, deletionList)
 	}
 	return nil
 
 }
 
-func delete(cfg *openshiftTY.ProviderConfig, items []corev1.Namespace) error {
+func delete(k8sClient client.Client, cfg *openshiftTY.ProviderConfig, items []corev1.Namespace) error {
 	if len(items) == 0 {
 		return nil
 	}
 	for _, ns := range items {
-		err := nsAPI.Delete(&ns)
+		err := nsAPI.Delete(k8sClient, &ns)
 		if err != nil {
 			return err
 		}
 		zap.L().Debug("deleted a Namespace", zap.String("namespace", ns.Name))
-		err = waitForDeletion(cfg, ns.Name)
+		err = waitForDeletion(k8sClient, cfg, ns.Name)
 		if err != nil {
 			return err
 		}
@@ -77,7 +77,7 @@ func delete(cfg *openshiftTY.ProviderConfig, items []corev1.Namespace) error {
 	return nil
 }
 
-func add(cfg *openshiftTY.ProviderConfig) error {
+func add(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) error {
 	if len(cfg.Data) == 0 {
 		// TODO: report error
 		return nil
@@ -92,7 +92,7 @@ func add(cfg *openshiftTY.ProviderConfig) error {
 		opts := []client.ListOption{
 			client.InNamespace(""),
 		}
-		nsList, err := nsAPI.List(opts)
+		nsList, err := nsAPI.List(k8sClient, opts)
 		if err != nil {
 			zap.L().Fatal("error on getting Namespace list", zap.Error(err))
 		}
@@ -108,7 +108,7 @@ func add(cfg *openshiftTY.ProviderConfig) error {
 				found = true
 				if cfg.Config.Recreate {
 					zap.L().Debug("Namespace recreate enabled", zap.String("name", metadata.Name), zap.String("namespace", metadata.Namespace))
-					err = delete(cfg, []corev1.Namespace{ns})
+					err = delete(k8sClient, cfg, []corev1.Namespace{ns})
 					if err != nil {
 						return err
 					}
@@ -118,7 +118,7 @@ func add(cfg *openshiftTY.ProviderConfig) error {
 			}
 		}
 		if !found {
-			err = nsAPI.CreateWithMap(nsCfg)
+			err = nsAPI.CreateWithMap(k8sClient, nsCfg)
 			if err != nil {
 				zap.L().Fatal("error on creating Namespace", zap.String("name", metadata.Name), zap.String("namespace", metadata.Namespace), zap.Error(err))
 			}
@@ -129,19 +129,19 @@ func add(cfg *openshiftTY.ProviderConfig) error {
 	return nil
 }
 
-func waitForDeletion(cfg *openshiftTY.ProviderConfig, namespace string) error {
+func waitForDeletion(k8sClient client.Client, cfg *openshiftTY.ProviderConfig, namespace string) error {
 	executeFunc := func() (bool, error) {
-		return isDeleted(namespace)
+		return isDeleted(k8sClient, namespace)
 	}
 	tc := cfg.Config.TimeoutConfig
 	return funcUtils.ExecuteWithTimeoutAndContinuesSuccessCount(executeFunc, tc.Timeout, tc.ScanInterval, tc.ExpectedSuccessCount)
 }
 
-func isDeleted(namespace string) (bool, error) {
+func isDeleted(k8sClient client.Client, namespace string) (bool, error) {
 	opts := []client.ListOption{
 		client.InNamespace(""),
 	}
-	nsList, err := nsAPI.List(opts)
+	nsList, err := nsAPI.List(k8sClient, opts)
 	if err == nil {
 		for _, cs := range nsList.Items {
 			if cs.Name == namespace {

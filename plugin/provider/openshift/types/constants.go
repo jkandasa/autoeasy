@@ -9,6 +9,8 @@ const (
 	FuncKeepOnly     = "keep_only"
 	FuncPrintInfo    = "print_info"
 	FuncWaitForReady = "wait_for_ready"
+	FuncLogin        = "login"
+	FuncLogout       = "logout"
 
 	// kinds
 	KindSubscription             = "Subscription"
@@ -17,4 +19,5 @@ const (
 	KindNamespace                = "Namespace"
 	KindDeployment               = "Deployment"
 	KindRoute                    = "Route"
+	KindInternal                 = "Internal"
 )

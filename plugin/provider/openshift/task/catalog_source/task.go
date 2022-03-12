@@ -13,13 +13,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func Run(cfg *openshiftTY.ProviderConfig) (interface{}, error) {
+func Run(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) (interface{}, error) {
 	switch cfg.Function {
 	case openshiftTY.FuncAdd:
-		return nil, add(cfg)
+		return nil, add(k8sClient, cfg)
 
 	case openshiftTY.FuncKeepOnly, openshiftTY.FuncRemove, openshiftTY.FuncRemoveAll:
-		return nil, performDelete(cfg)
+		return nil, performDelete(k8sClient, cfg)
 
 	default:
 		return nil, fmt.Errorf("invalid function. kind:%s, function:%s", cfg.Kind, cfg.Function)
@@ -27,17 +27,17 @@ func Run(cfg *openshiftTY.ProviderConfig) (interface{}, error) {
 
 }
 
-func performDelete(cfg *openshiftTY.ProviderConfig) error {
+func performDelete(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) error {
 	opts := []client.ListOption{
 		client.InNamespace(""),
 	}
-	csList, err := csAPI.List(opts)
+	csList, err := csAPI.List(k8sClient, opts)
 	if err != nil {
 		zap.L().Fatal("error on getting CatalogSource list", zap.Error(err))
 	}
 
 	if cfg.Function == openshiftTY.FuncRemoveAll {
-		return delete(cfg, csList.Items)
+		return delete(k8sClient, cfg, csList.Items)
 	} else if cfg.Function == openshiftTY.FuncRemoveAll || cfg.Function == openshiftTY.FuncKeepOnly {
 		deletionList := make([]corsosv1alpha1.CatalogSource, 0)
 
@@ -57,18 +57,18 @@ func performDelete(cfg *openshiftTY.ProviderConfig) error {
 			}
 		}
 
-		return delete(cfg, deletionList)
+		return delete(k8sClient, cfg, deletionList)
 	}
 	return nil
 
 }
 
-func delete(cfg *openshiftTY.ProviderConfig, items []corsosv1alpha1.CatalogSource) error {
+func delete(k8sClient client.Client, cfg *openshiftTY.ProviderConfig, items []corsosv1alpha1.CatalogSource) error {
 	if len(items) == 0 {
 		return nil
 	}
 	for _, cs := range items {
-		err := csAPI.Delete(&cs)
+		err := csAPI.Delete(k8sClient, &cs)
 		if err != nil {
 			return err
 		}
@@ -77,7 +77,7 @@ func delete(cfg *openshiftTY.ProviderConfig, items []corsosv1alpha1.CatalogSourc
 	return nil
 }
 
-func add(cfg *openshiftTY.ProviderConfig) error {
+func add(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) error {
 	if len(cfg.Data) == 0 {
 		// TODO: report error
 		return nil
@@ -92,7 +92,7 @@ func add(cfg *openshiftTY.ProviderConfig) error {
 		opts := []client.ListOption{
 			client.InNamespace(""),
 		}
-		csList, err := csAPI.List(opts)
+		csList, err := csAPI.List(k8sClient, opts)
 		if err != nil {
 			zap.L().Fatal("error on getting CatalogSource list", zap.Error(err))
 		}
@@ -108,7 +108,7 @@ func add(cfg *openshiftTY.ProviderConfig) error {
 				found = true
 				if cfg.Config.Recreate {
 					zap.L().Debug("CatalogSource recreate enabled", zap.String("name", metadata.Name), zap.String("namespace", metadata.Namespace))
-					err = csAPI.Delete(&icsp)
+					err = csAPI.Delete(k8sClient, &icsp)
 					if err != nil {
 						return err
 					}
@@ -118,12 +118,12 @@ func add(cfg *openshiftTY.ProviderConfig) error {
 			}
 		}
 		if !found {
-			err = csAPI.CreateWithMap(icspCfg)
+			err = csAPI.CreateWithMap(k8sClient, icspCfg)
 			if err != nil {
 				zap.L().Fatal("error on creating CatalogSource", zap.String("name", metadata.Name), zap.String("namespace", metadata.Namespace), zap.Error(err))
 			}
 			zap.L().Info("CatalogSource created", zap.String("name", metadata.Name), zap.String("namespace", metadata.Namespace))
-			err = waitForCatalogSource(cfg, metadata.Name)
+			err = waitForCatalogSource(k8sClient, cfg, metadata.Name)
 			if err != nil {
 				return err
 			}
@@ -133,19 +133,19 @@ func add(cfg *openshiftTY.ProviderConfig) error {
 	return nil
 }
 
-func waitForCatalogSource(cfg *openshiftTY.ProviderConfig, name string) error {
+func waitForCatalogSource(k8sClient client.Client, cfg *openshiftTY.ProviderConfig, name string) error {
 	executeFunc := func() (bool, error) {
-		return isReady(name)
+		return isReady(k8sClient, name)
 	}
 	tc := cfg.Config.TimeoutConfig
 	return funcUtils.ExecuteWithTimeoutAndContinuesSuccessCount(executeFunc, tc.Timeout, tc.ScanInterval, tc.ExpectedSuccessCount)
 }
 
-func isReady(name string) (bool, error) {
+func isReady(k8sClient client.Client, name string) (bool, error) {
 	opts := []client.ListOption{
 		client.InNamespace(""),
 	}
-	csList, err := csAPI.List(opts)
+	csList, err := csAPI.List(k8sClient, opts)
 	if err == nil {
 		for _, cs := range csList.Items {
 			if cs.Name == name {

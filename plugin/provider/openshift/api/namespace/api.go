@@ -7,65 +7,64 @@ import (
 
 	"github.com/jkandasa/autoeasy/pkg/utils"
 	formatterUtils "github.com/jkandasa/autoeasy/pkg/utils/formatter"
-	"github.com/jkandasa/autoeasy/plugin/provider/openshift/store"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func List(opts []client.ListOption) (*corev1.NamespaceList, error) {
+func List(k8sClient client.Client, opts []client.ListOption) (*corev1.NamespaceList, error) {
 	namespaceList := &corev1.NamespaceList{}
-	err := store.K8SClient.List(context.Background(), namespaceList, opts...)
+	err := k8sClient.List(context.Background(), namespaceList, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return namespaceList, nil
 }
 
-func Get(name string) (*corev1.Namespace, error) {
+func Get(k8sClient client.Client, name string) (*corev1.Namespace, error) {
 	namespace := &corev1.Namespace{}
 	namespacedName := types.NamespacedName{
 		Name:      name,
 		Namespace: "",
 	}
-	err := store.K8SClient.Get(context.Background(), namespacedName, namespace)
+	err := k8sClient.Get(context.Background(), namespacedName, namespace)
 	if err != nil {
 		return nil, err
 	}
 	return namespace, nil
 }
 
-func Delete(namespace *corev1.Namespace) error {
-	return utils.IgnoreNotFoundError(store.K8SClient.Delete(context.Background(), namespace))
+func Delete(k8sClient client.Client, namespace *corev1.Namespace) error {
+	return utils.IgnoreNotFoundError(k8sClient.Delete(context.Background(), namespace))
 }
 
-func DeleteOfAll(namespace *corev1.Namespace, opts []client.DeleteAllOfOption) error {
+func DeleteOfAll(k8sClient client.Client, namespace *corev1.Namespace, opts []client.DeleteAllOfOption) error {
 	if namespace == nil {
 		namespace = &corev1.Namespace{}
 	}
-	return store.K8SClient.DeleteAllOf(context.Background(), namespace, opts...)
+	return k8sClient.DeleteAllOf(context.Background(), namespace, opts...)
 }
 
-func Create(namespace *corev1.Namespace) error {
-	return store.K8SClient.Create(context.Background(), namespace)
+func Create(k8sClient client.Client, namespace *corev1.Namespace) error {
+	return k8sClient.Create(context.Background(), namespace)
 }
 
-func CreateWithMap(cfg map[string]interface{}) error {
+func CreateWithMap(k8sClient client.Client, cfg map[string]interface{}) error {
 	namespace := &corev1.Namespace{}
 	err := formatterUtils.JsonMapToStruct(cfg, namespace)
 	if err != nil {
 		return err
 	}
-	return store.K8SClient.Create(context.Background(), namespace)
+	return k8sClient.Create(context.Background(), namespace)
 }
 
-func CreateIfNotAvailable(name string) error {
+func CreateIfNotAvailable(k8sClient client.Client, name string) error {
 	namespace := &corev1.Namespace{
 		ObjectMeta: v1.ObjectMeta{Name: name},
 	}
 
-	list, err := List([]client.ListOption{})
+	list, err := List(k8sClient, []client.ListOption{})
 	if err != nil {
 		return err
 	}
@@ -75,5 +74,5 @@ func CreateIfNotAvailable(name string) error {
 		}
 	}
 
-	return store.K8SClient.Create(context.Background(), namespace)
+	return k8sClient.Create(context.Background(), namespace)
 }

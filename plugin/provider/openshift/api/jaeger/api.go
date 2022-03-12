@@ -7,7 +7,6 @@ import (
 	"github.com/jkandasa/autoeasy/pkg/utils"
 	formatterUtils "github.com/jkandasa/autoeasy/pkg/utils/formatter"
 	funcUtils "github.com/jkandasa/autoeasy/pkg/utils/function"
-	"github.com/jkandasa/autoeasy/plugin/provider/openshift/store"
 
 	"go.uber.org/zap"
 
@@ -15,44 +14,44 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func List(opts []client.ListOption) (*jaegerv1.JaegerList, error) {
+func List(k8sClient client.Client, opts []client.ListOption) (*jaegerv1.JaegerList, error) {
 	jaegerList := &jaegerv1.JaegerList{}
-	err := store.K8SClient.List(context.Background(), jaegerList, opts...)
+	err := k8sClient.List(context.Background(), jaegerList, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return jaegerList, nil
 }
 
-func Get(name, namespace string) (*jaegerv1.Jaeger, error) {
+func Get(k8sClient client.Client, name, namespace string) (*jaegerv1.Jaeger, error) {
 	jaeger := &jaegerv1.Jaeger{}
 	namespacedName := types.NamespacedName{
 		Name:      name,
 		Namespace: namespace,
 	}
-	err := store.K8SClient.Get(context.Background(), namespacedName, jaeger)
+	err := k8sClient.Get(context.Background(), namespacedName, jaeger)
 	if err != nil {
 		return nil, err
 	}
 	return jaeger, nil
 }
 
-func Delete(jaeger *jaegerv1.Jaeger) error {
-	return utils.IgnoreNotFoundError(store.K8SClient.Delete(context.Background(), jaeger))
+func Delete(k8sClient client.Client, jaeger *jaegerv1.Jaeger) error {
+	return utils.IgnoreNotFoundError(k8sClient.Delete(context.Background(), jaeger))
 }
 
-func DeleteOfAll(jaeger *jaegerv1.Jaeger, opts []client.DeleteAllOfOption) error {
+func DeleteOfAll(k8sClient client.Client, jaeger *jaegerv1.Jaeger, opts []client.DeleteAllOfOption) error {
 	if jaeger == nil {
 		jaeger = &jaegerv1.Jaeger{}
 	}
-	return store.K8SClient.DeleteAllOf(context.Background(), jaeger, opts...)
+	return k8sClient.DeleteAllOf(context.Background(), jaeger, opts...)
 }
 
-func Create(jaeger *jaegerv1.Jaeger) error {
-	return store.K8SClient.Create(context.Background(), jaeger)
+func Create(k8sClient client.Client, jaeger *jaegerv1.Jaeger) error {
+	return k8sClient.Create(context.Background(), jaeger)
 }
 
-func CreateWithMap(cfg map[string]interface{}) error {
+func CreateWithMap(k8sClient client.Client, cfg map[string]interface{}) error {
 	jaeger := &jaegerv1.Jaeger{}
 	err := formatterUtils.JsonMapToStruct(cfg, jaeger)
 	if err != nil {
@@ -61,10 +60,10 @@ func CreateWithMap(cfg map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
-	return store.K8SClient.Create(context.Background(), jaeger)
+	return k8sClient.Create(context.Background(), jaeger)
 }
 
-func CreateWithMapAndWait(cfg map[string]interface{}) error {
+func CreateWithMapAndWait(k8sClient client.Client, cfg map[string]interface{}) error {
 	jaeger := &jaegerv1.Jaeger{}
 	err := formatterUtils.JsonMapToStruct(cfg, jaeger)
 	if err != nil {
@@ -73,22 +72,22 @@ func CreateWithMapAndWait(cfg map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
-	err = store.K8SClient.Create(context.Background(), jaeger)
+	err = k8sClient.Create(context.Background(), jaeger)
 	if err != nil {
 		return err
 	}
 	executeFunc := func() (bool, error) {
-		return isRunning(jaeger.Name, jaeger.Namespace)
+		return isRunning(k8sClient, jaeger.Name, jaeger.Namespace)
 	}
 	return funcUtils.ExecuteWithDefaultTimeoutAndContinuesSuccessCount(executeFunc)
 }
 
-func isRunning(name, namespace string) (bool, error) {
+func isRunning(k8sClient client.Client, name, namespace string) (bool, error) {
 	opts := []client.ListOption{
 		client.InNamespace(namespace),
 	}
 
-	jaegerList, err := List(opts)
+	jaegerList, err := List(k8sClient, opts)
 	if err != nil {
 		return false, err
 	}

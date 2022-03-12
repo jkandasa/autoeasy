@@ -14,7 +14,7 @@ import (
 )
 
 // Uninstall removes the Subscription and ClusterServiceVersion
-func Uninstall(cfg map[string]interface{}) error {
+func Uninstall(k8sClient client.Client, cfg map[string]interface{}) error {
 	subscription := &corsosv1alpha1.Subscription{}
 	err := mcUtils.MapToStruct(mcUtils.TagNameJSON, cfg, subscription)
 	if err != nil {
@@ -24,7 +24,7 @@ func Uninstall(cfg map[string]interface{}) error {
 		client.InNamespace(""),
 	}
 
-	subscriptionList, err := subscriptionAPI.List(opts)
+	subscriptionList, err := subscriptionAPI.List(k8sClient, opts)
 	if err != nil {
 		return err
 	}
@@ -39,13 +39,13 @@ func Uninstall(cfg map[string]interface{}) error {
 			}
 
 			// remove csv
-			csvList, err := csvAPI.List(opts)
+			csvList, err := csvAPI.List(k8sClient, opts)
 			if err != nil {
 				return err
 			}
 			for _, csv := range csvList.Items {
 				if _, remove := mcUtils.FindItem(removableCSVs, csv.Name); remove {
-					err = csvAPI.Delete(&csv)
+					err = csvAPI.Delete(k8sClient, &csv)
 					if err != nil {
 						zap.L().Error("error on csv deletion", zap.String("name", csv.Name), zap.String("namespace", csv.Namespace), zap.Error(err))
 						return err
@@ -54,7 +54,7 @@ func Uninstall(cfg map[string]interface{}) error {
 			}
 
 			// remove subscription
-			err = subscriptionAPI.Delete(&rxSub)
+			err = subscriptionAPI.Delete(k8sClient, &rxSub)
 			if err != nil {
 				return err
 			}
@@ -64,9 +64,9 @@ func Uninstall(cfg map[string]interface{}) error {
 	return nil
 }
 
-func Install(cfg map[string]interface{}, tc openshiftTY.TimeoutConfig) error {
+func Install(k8sClient client.Client, cfg map[string]interface{}, tc openshiftTY.TimeoutConfig) error {
 	// create subscription
-	err := subscriptionAPI.CreateWithMap(cfg)
+	err := subscriptionAPI.CreateWithMap(k8sClient, cfg)
 	if err != nil {
 		return err
 	}
@@ -76,7 +76,7 @@ func Install(cfg map[string]interface{}, tc openshiftTY.TimeoutConfig) error {
 	if err != nil {
 		return err
 	}
-	subscription, err := subscriptionAPI.Get(objectMeta.Name, objectMeta.Namespace)
+	subscription, err := subscriptionAPI.Get(k8sClient, objectMeta.Name, objectMeta.Namespace)
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func Install(cfg map[string]interface{}, tc openshiftTY.TimeoutConfig) error {
 	// get deployments
 	deployments := []string{}
 	executeFunc := func() (bool, error) {
-		_deployments, err := getDeployments(subscription.Name, subscription.Namespace)
+		_deployments, err := getDeployments(k8sClient, subscription.Name, subscription.Namespace)
 		if err != nil {
 			return false, err
 		}
@@ -97,13 +97,13 @@ func Install(cfg map[string]interface{}, tc openshiftTY.TimeoutConfig) error {
 		return err
 	}
 
-	return deploymentAPI.WaitForDeployments(deployments, subscription.Namespace, tc)
+	return deploymentAPI.WaitForDeployments(k8sClient, deployments, subscription.Namespace, tc)
 }
 
-func getDeployments(subscriptionName, namespace string) ([]string, error) {
+func getDeployments(k8sClient client.Client, subscriptionName, namespace string) ([]string, error) {
 	deployments := []string{}
 	zap.L().Debug("operator deployment details not available. getting deployments details", zap.String("subscriptionName", subscriptionName), zap.String("namespace", namespace))
-	subscription, err := subscriptionAPI.Get(subscriptionName, namespace)
+	subscription, err := subscriptionAPI.Get(k8sClient, subscriptionName, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func getDeployments(subscriptionName, namespace string) ([]string, error) {
 		opts := []client.ListOption{
 			client.InNamespace(""),
 		}
-		csvList, err := csvAPI.List(opts)
+		csvList, err := csvAPI.List(k8sClient, opts)
 		if err != nil {
 			return nil, err
 		}

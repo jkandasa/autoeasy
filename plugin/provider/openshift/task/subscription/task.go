@@ -10,31 +10,31 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func Run(cfg *openshiftTY.ProviderConfig) (interface{}, error) {
+func Run(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) (interface{}, error) {
 	switch cfg.Function {
 	case openshiftTY.FuncAdd:
-		return nil, add(cfg)
+		return nil, add(k8sClient, cfg)
 
 	case openshiftTY.FuncKeepOnly, openshiftTY.FuncRemove, openshiftTY.FuncRemoveAll:
-		return nil, performDelete(cfg)
+		return nil, performDelete(k8sClient, cfg)
 
 	}
 
 	return nil, nil
 }
 
-func performDelete(cfg *openshiftTY.ProviderConfig) error {
+func performDelete(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) error {
 	opts := []client.ListOption{
 		client.InNamespace(""),
 	}
-	subscriptionList, err := subscriptionAPI.List(opts)
+	subscriptionList, err := subscriptionAPI.List(k8sClient, opts)
 	if err != nil {
 		zap.L().Fatal("error on getting Subscription list", zap.Error(err))
 		return err
 	}
 
 	if cfg.Function == openshiftTY.FuncRemoveAll {
-		return delete(cfg, subscriptionList.Items)
+		return delete(k8sClient, cfg, subscriptionList.Items)
 	} else if cfg.Function == openshiftTY.FuncRemove || cfg.Function == openshiftTY.FuncKeepOnly {
 		deletionList := make([]corsosv1alpha1.Subscription, 0)
 
@@ -54,18 +54,18 @@ func performDelete(cfg *openshiftTY.ProviderConfig) error {
 			}
 		}
 
-		return delete(cfg, deletionList)
+		return delete(k8sClient, cfg, deletionList)
 	}
 	return nil
 
 }
 
-func delete(cfg *openshiftTY.ProviderConfig, items []corsosv1alpha1.Subscription) error {
+func delete(k8sClient client.Client, cfg *openshiftTY.ProviderConfig, items []corsosv1alpha1.Subscription) error {
 	if len(items) == 0 {
 		return nil
 	}
 	for _, cs := range items {
-		err := subscriptionAPI.Delete(&cs)
+		err := subscriptionAPI.Delete(k8sClient, &cs)
 		if err != nil {
 			return err
 		}
@@ -74,7 +74,7 @@ func delete(cfg *openshiftTY.ProviderConfig, items []corsosv1alpha1.Subscription
 	return nil
 }
 
-func add(cfg *openshiftTY.ProviderConfig) error {
+func add(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) error {
 	if len(cfg.Data) == 0 {
 		// TODO: report error
 		return nil
@@ -89,7 +89,7 @@ func add(cfg *openshiftTY.ProviderConfig) error {
 		opts := []client.ListOption{
 			client.InNamespace(""),
 		}
-		csList, err := subscriptionAPI.List(opts)
+		csList, err := subscriptionAPI.List(k8sClient, opts)
 		if err != nil {
 			zap.L().Fatal("error on getting Subscription list", zap.Error(err))
 		}
@@ -105,7 +105,7 @@ func add(cfg *openshiftTY.ProviderConfig) error {
 				found = true
 				if cfg.Config.Recreate {
 					zap.L().Debug("Subscription recreate enabled", zap.String("name", metadata.Name), zap.String("namespace", metadata.Namespace))
-					err = operatorAPI.Uninstall(subscriptionCfg)
+					err = operatorAPI.Uninstall(k8sClient, subscriptionCfg)
 					if err != nil {
 						return err
 					}
@@ -116,7 +116,7 @@ func add(cfg *openshiftTY.ProviderConfig) error {
 			}
 		}
 		if !found {
-			err = operatorAPI.Install(subscriptionCfg, cfg.Config.TimeoutConfig)
+			err = operatorAPI.Install(k8sClient, subscriptionCfg, cfg.Config.TimeoutConfig)
 			if err != nil {
 				zap.L().Fatal("error on adding a Subscription", zap.String("name", metadata.Name), zap.String("namespace", metadata.Namespace), zap.Error(err))
 				return err

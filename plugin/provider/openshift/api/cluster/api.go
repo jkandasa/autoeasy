@@ -2,19 +2,19 @@ package cluster
 
 import (
 	nodeAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/node"
-	"github.com/jkandasa/autoeasy/plugin/provider/openshift/store"
 	openshiftTY "github.com/jkandasa/autoeasy/plugin/provider/openshift/types"
 	"go.uber.org/zap"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func PrintClusterInfo() {
+func PrintClusterInfo(k8sClient client.Client, k8sClientSet *kubernetes.Clientset) {
 	// get server version
-	serverVersion, err := store.K8SClientSet.ServerVersion()
+	serverVersion, err := k8sClientSet.ServerVersion()
 	if err != nil {
 		zap.L().Error("error on getting server version", zap.Error(err))
 	} else {
-		serAddr := store.K8SClientSet.RESTClient().Get().URL()
+		serAddr := k8sClientSet.RESTClient().Get().URL()
 		zap.L().Info("server version",
 			zap.Any("server", serAddr.String()),
 			zap.String("buildDate", serverVersion.BuildDate),
@@ -31,7 +31,7 @@ func PrintClusterInfo() {
 	}
 
 	opts := []client.ListOption{}
-	nodesList, err := nodeAPI.List(opts)
+	nodesList, err := nodeAPI.List(k8sClient, opts)
 	nodes := make([]openshiftTY.Node, 0)
 
 	if err != nil {

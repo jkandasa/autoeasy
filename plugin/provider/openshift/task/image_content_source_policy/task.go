@@ -11,30 +11,30 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func Run(cfg *openshiftTY.ProviderConfig) (interface{}, error) {
+func Run(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) (interface{}, error) {
 	switch cfg.Function {
 	case openshiftTY.FuncAdd:
-		return nil, add(cfg)
+		return nil, add(k8sClient, cfg)
 
 	case openshiftTY.FuncKeepOnly, openshiftTY.FuncRemove, openshiftTY.FuncRemoveAll:
-		return nil, performDelete(cfg)
+		return nil, performDelete(k8sClient, cfg)
 
 	}
 
 	return nil, nil
 }
 
-func performDelete(cfg *openshiftTY.ProviderConfig) error {
+func performDelete(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) error {
 	opts := []client.ListOption{
 		client.InNamespace(""),
 	}
-	icspList, err := icspAPI.List(opts)
+	icspList, err := icspAPI.List(k8sClient, opts)
 	if err != nil {
 		zap.L().Fatal("error on getting imageContentSourcePolicy list", zap.Error(err))
 	}
 
 	if cfg.Function == openshiftTY.FuncRemoveAll {
-		return delete(cfg, icspList.Items)
+		return delete(k8sClient, cfg, icspList.Items)
 	} else if cfg.Function == openshiftTY.FuncRemoveAll || cfg.Function == openshiftTY.FuncKeepOnly {
 		deletionList := make([]v1alpha1.ImageContentSourcePolicy, 0)
 
@@ -54,27 +54,27 @@ func performDelete(cfg *openshiftTY.ProviderConfig) error {
 			}
 		}
 
-		return delete(cfg, deletionList)
+		return delete(k8sClient, cfg, deletionList)
 	}
 	return nil
 
 }
 
-func delete(cfg *openshiftTY.ProviderConfig, items []v1alpha1.ImageContentSourcePolicy) error {
+func delete(k8sClient client.Client, cfg *openshiftTY.ProviderConfig, items []v1alpha1.ImageContentSourcePolicy) error {
 	if len(items) == 0 {
 		return nil
 	}
 	for _, icsp := range items {
-		err := icspAPI.Delete(&icsp)
+		err := icspAPI.Delete(k8sClient, &icsp)
 		if err != nil {
 			return err
 		}
 		zap.L().Debug("deleted a ImageContentSourcePolicy", zap.String("name", icsp.Name))
 	}
-	return waitForNodes(cfg)
+	return waitForNodes(k8sClient, cfg)
 }
 
-func add(task *openshiftTY.ProviderConfig) error {
+func add(k8sClient client.Client, task *openshiftTY.ProviderConfig) error {
 	if len(task.Data) == 0 {
 		// TODO: report error
 		return nil
@@ -89,7 +89,7 @@ func add(task *openshiftTY.ProviderConfig) error {
 		opts := []client.ListOption{
 			client.InNamespace(""),
 		}
-		icspList, err := icspAPI.List(opts)
+		icspList, err := icspAPI.List(k8sClient, opts)
 		if err != nil {
 			zap.L().Fatal("error on getting imageContentSourcePolicy list", zap.Error(err))
 		}
@@ -105,7 +105,7 @@ func add(task *openshiftTY.ProviderConfig) error {
 				found = true
 				if task.Config.Recreate {
 					zap.L().Debug("imageContentSourcePolicy recreate enabled", zap.String("name", metadata.Name))
-					err = icspAPI.Delete(&icsp)
+					err = icspAPI.Delete(k8sClient, &icsp)
 					if err != nil {
 						return err
 					}
@@ -115,7 +115,7 @@ func add(task *openshiftTY.ProviderConfig) error {
 			}
 		}
 		if !found {
-			err = icspAPI.CreateWithMap(icspCfg)
+			err = icspAPI.CreateWithMap(k8sClient, icspCfg)
 			if err != nil {
 				zap.L().Fatal("error on creating imageContentSourcePolicy", zap.String("name", metadata.Name), zap.Error(err))
 			}
@@ -124,22 +124,22 @@ func add(task *openshiftTY.ProviderConfig) error {
 		}
 	}
 
-	return waitForNodes(task)
+	return waitForNodes(k8sClient, task)
 }
 
-func waitForNodes(cfg *openshiftTY.ProviderConfig) error {
+func waitForNodes(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) error {
 	executeFunc := func() (bool, error) {
-		return isNodesReady()
+		return isNodesReady(k8sClient)
 	}
 	tc := cfg.Config.TimeoutConfig
 	return funcUtils.ExecuteWithTimeoutAndContinuesSuccessCount(executeFunc, tc.Timeout, tc.ScanInterval, tc.ExpectedSuccessCount)
 }
 
-func isNodesReady() (bool, error) {
+func isNodesReady(k8sClient client.Client) (bool, error) {
 	opts := []client.ListOption{
 		client.InNamespace(""),
 	}
-	nodeList, err := nodeAPI.List(opts)
+	nodeList, err := nodeAPI.List(k8sClient, opts)
 	unavailable := []string{}
 	if err == nil {
 		for _, node := range nodeList.Items {
