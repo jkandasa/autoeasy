@@ -105,7 +105,7 @@ func add(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) error {
 				found = true
 				if cfg.Config.Recreate {
 					zap.L().Debug("Subscription recreate enabled", zap.String("name", metadata.Name), zap.String("namespace", metadata.Namespace))
-					err = operatorAPI.Uninstall(k8sClient, subscriptionCfg)
+					err = operatorAPI.UninstallWithMap(k8sClient, subscriptionCfg)
 					if err != nil {
 						return err
 					}
@@ -116,7 +116,7 @@ func add(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) error {
 			}
 		}
 		if !found {
-			err = operatorAPI.Install(k8sClient, subscriptionCfg, cfg.Config.TimeoutConfig)
+			err = operatorAPI.InstallWithMap(k8sClient, subscriptionCfg, cfg.Config.TimeoutConfig)
 			if err != nil {
 				zap.L().Fatal("error on adding a Subscription", zap.String("name", metadata.Name), zap.String("namespace", metadata.Namespace), zap.Error(err))
 				return err

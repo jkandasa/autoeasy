@@ -4,6 +4,7 @@ package openshift
 // task.Config.TimeoutConfig.UpdateDefaults()
 
 import (
+	"errors"
 	"fmt"
 
 	templateTY "github.com/jkandasa/autoeasy/pkg/types/template"
@@ -29,6 +30,7 @@ const (
 
 type Openshift struct {
 	Config       openshiftTY.PluginConfig
+	Client       *k8s.K8SClient
 	K8SClient    client.Client
 	K8SClientSet *kubernetes.Clientset
 }
@@ -39,7 +41,7 @@ func New(config map[string]interface{}) (providerPluginTY.Plugin, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Openshift{Config: openshiftCfg}, nil
+	return &Openshift{Config: openshiftCfg, Client: k8s.New(&openshiftCfg)}, nil
 }
 
 func (o *Openshift) Name() string {
@@ -110,6 +112,9 @@ func (o *Openshift) runInternal(cfg *openshiftTY.ProviderConfig) (interface{}, e
 
 	case openshiftTY.FuncLogout:
 		return nil, o.logout()
+
+	case openshiftTY.FuncPrintInfo:
+		return nil, errors.New("not implemented yet")
 	}
 
 	return nil, fmt.Errorf("unknown function. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
@@ -123,17 +128,26 @@ func (o *Openshift) login(cfg *openshiftTY.PluginConfig) error {
 		}
 	}
 
-	// load client
-	kubeClient, err := k8s.NewClient(cfg)
+	// login
+	err := o.Client.Login(cfg, true)
 	if err != nil {
-		zap.L().Fatal("error on loading kubernetes client", zap.Error(err))
+		zap.L().Error("error on doing login", zap.Error(err))
+		return err
+	}
+
+	// load client
+	kubeClient, err := o.Client.NewClient()
+	if err != nil {
+		zap.L().Error("error on loading kubernetes client", zap.Error(err))
+		return err
 	}
 	o.K8SClient = kubeClient
 
 	// load client set
-	kubeClientSet, err := k8s.NewClientset(cfg)
+	kubeClientSet, err := o.Client.NewClientset()
 	if err != nil {
-		zap.L().Fatal("error on loading kubernetes client set", zap.Error(err))
+		zap.L().Error("error on loading kubernetes client set", zap.Error(err))
+		return err
 	}
 	o.K8SClientSet = kubeClientSet
 

@@ -6,6 +6,7 @@ import (
 
 	templateStore "github.com/jkandasa/autoeasy/pkg/execute/template"
 	variableStore "github.com/jkandasa/autoeasy/pkg/execute/variable"
+	fileTY "github.com/jkandasa/autoeasy/pkg/types/file"
 	suiteTY "github.com/jkandasa/autoeasy/pkg/types/suite"
 	templateTY "github.com/jkandasa/autoeasy/pkg/types/template"
 	variableTY "github.com/jkandasa/autoeasy/pkg/types/variable"
@@ -67,41 +68,76 @@ func Load(dir string) error {
 			return err
 		}
 
-		// load template with defined variables
-		cfg := suiteTY.SuiteConfig{}
-		suitePost, err := templateUtils.Execute(string(data), vars)
-		if err != nil {
-			zap.L().Error("error on post executing template with defined variables", zap.String("filename", file.FullPath), zap.Error(err))
-			return err
+		if len(cfgPre.Matrix) > 0 { // switching to matrix mode
+			for matrixIndex := range cfgPre.Matrix {
+				matrix := cfgPre.Matrix[matrixIndex]
+				if matrix.Disabled {
+					zap.L().Debug("matrix disabled", zap.String("suiteName", cfgPre.Name), zap.Int("matrixIndex", matrixIndex), zap.String("matrixDescription", matrix.Description))
+					continue
+				}
+
+				updateVars, err := updateVariables(vars, matrix.Variables)
+				if err != nil {
+					zap.L().Error("error on merging variables", zap.String("filename", file.FullPath), zap.Int("matrixIndex", matrixIndex), zap.String("matrixDescription", matrix.Description), zap.Error(err))
+					return err
+				}
+				// include it on the list
+				suiteCfg, err := getSuite(data, updateVars, &file)
+				if err != nil {
+					return err
+				}
+				if suiteCfg != nil {
+					suiteCfg.SelectedMatrix = &matrix
+					suiteConfigs = append(suiteConfigs, *suiteCfg)
+				}
+			}
+		} else {
+			suiteCfg, err := getSuite(data, vars, &file)
+			if err != nil {
+				return err
+			}
+			if suiteCfg != nil {
+				suiteConfigs = append(suiteConfigs, *suiteCfg)
+			}
 		}
-
-		err = yaml.Unmarshal([]byte(suitePost), &cfg)
-		if err != nil {
-			zap.L().Error("error on post yaml unmarshal", zap.String("filename", file.FullPath), zap.Error(err))
-			return err
-		}
-
-		// include filename
-		cfg.FileName = file.FullPath
-		cfg.RawData = string(data)
-
-		// if disabled, do not include
-		if cfg.Disabled {
-			zap.L().Info("suite disabled", zap.String("filename", cfg.FileName), zap.String("name", cfg.Name))
-			continue
-		}
-
-		suiteConfigs = append(suiteConfigs, cfg)
 	}
 
 	return nil
+}
+
+func getSuite(suiteBytes []byte, vars variableTY.Variables, file *fileTY.File) (*suiteTY.SuiteConfig, error) {
+	// load template with defined variables
+	cfg := suiteTY.SuiteConfig{}
+	suitePost, err := templateUtils.Execute(string(suiteBytes), vars)
+	if err != nil {
+		zap.L().Error("error on post executing template with defined variables", zap.String("filename", file.FullPath), zap.Error(err))
+		return nil, err
+	}
+
+	err = yaml.Unmarshal([]byte(suitePost), &cfg)
+	if err != nil {
+		zap.L().Error("error on post yaml unmarshal", zap.String("filename", file.FullPath), zap.Error(err))
+		return nil, err
+	}
+
+	// include filename
+	cfg.FileName = file.FullPath
+	cfg.RawData = string(suiteBytes)
+
+	// if disabled, do not include
+	if cfg.Disabled {
+		zap.L().Info("suite disabled", zap.String("filename", cfg.FileName), zap.String("name", cfg.Name))
+		return nil, nil
+	}
+
+	return &cfg, nil
 }
 
 func Execute() error {
 	for _, cfg := range suiteConfigs {
 		zap.L().Info("about to execute a suite", zap.String("name", cfg.Name), zap.String("filename", cfg.FileName), zap.Int("numbeOfTask", len(cfg.Tasks)))
 		startTime := time.Now()
-		err := runExecution(&cfg)
+		err := runSuite(&cfg)
 		if err != nil {
 			return err
 		}
@@ -110,7 +146,7 @@ func Execute() error {
 	return nil
 }
 
-func runExecution(suiteCfg *suiteTY.SuiteConfig) error {
+func runSuite(suiteCfg *suiteTY.SuiteConfig) error {
 	for taskIndex, task := range suiteCfg.Tasks {
 		// update template
 		if task.Template == "" {
@@ -156,7 +192,15 @@ func runTask(suiteCfg *suiteTY.SuiteConfig, task *suiteTY.Task, taskIndex int) e
 	}
 
 	// merge all the variables
-	vars, err := updateVariables(rawTemplate.Variables, suiteDefaultVars, suiteCfg.Variables)
+
+	// include matrix variables, if available
+	var matrixVars variableTY.Variables
+	if suiteCfg.SelectedMatrix != nil {
+		zap.L().Info("suite with matrix configuration", zap.String("suiteName", suiteCfg.Name), zap.String("matrixDescription", suiteCfg.SelectedMatrix.Description))
+		matrixVars = suiteCfg.SelectedMatrix.Variables
+	}
+
+	vars, err := updateVariables(rawTemplate.Variables, suiteDefaultVars, suiteCfg.Variables, matrixVars)
 	if err != nil {
 		zap.L().Error("error on merging variables", zap.String("suiteFilename", suiteCfg.FileName), zap.Error(err))
 		return err

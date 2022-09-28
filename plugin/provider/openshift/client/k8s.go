@@ -3,6 +3,7 @@ package k8s
 import (
 	"flag"
 	"path/filepath"
+	"sync"
 
 	jaegerv1 "github.com/jaegertracing/jaeger-operator/apis/v1"
 	osoperatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
@@ -18,46 +19,72 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var restConfig *rest.Config
+var (
+	parseConfig sync.Once
+	kubeconfig  *string
+)
 
-func GetConfig() (*rest.Config, error) {
-	if restConfig == nil {
-		cfg, err := getConfig()
-		if err != nil {
-			return nil, err
-		}
-		restConfig = cfg
-	}
-	return restConfig, nil
+type K8SClient struct {
+	restConfig *rest.Config
+	Config     *openshiftTY.PluginConfig
 }
 
-func getConfig() (*rest.Config, error) {
-	var kubeconfig *string
-	if home := homedir.HomeDir(); home != "" {
-		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-	} else {
-		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-	}
-	flag.Parse()
+func New(cfg *openshiftTY.PluginConfig) *K8SClient {
+	return &K8SClient{Config: cfg}
+}
+
+func (k8s *K8SClient) loadConfigFromFile() error {
+	parseConfig.Do(func() { // run only once
+		if home := homedir.HomeDir(); home != "" {
+			kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+		} else {
+			kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+		}
+		flag.Parse()
+	})
 
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	restConfig = config
 
-	return config, nil
+	k8s.restConfig = config
+	return nil
 }
 
-func NewClient(cfg *openshiftTY.PluginConfig) (client.Client, error) {
-	config, err := GetConfig()
-	if err != nil {
-		return nil, err
+func (k8s *K8SClient) Login(cfg *openshiftTY.PluginConfig, forceRelogin bool) error {
+	if !forceRelogin && k8s.restConfig != nil {
+		return nil
 	}
 
-	config.TLSClientConfig.Insecure = cfg.Insecure
+	// load config from file
+	if cfg.LoadFromConfig {
+		err := k8s.loadConfigFromFile()
+		if err != nil {
+			return err
+		}
+	} else {
+		// load config from input
+		k8s.restConfig = &rest.Config{
+			Host:     cfg.Server,
+			Username: cfg.Username,
+			Password: cfg.Password,
+		}
+	}
 
-	client, err := client.New(config, client.Options{})
+	// update insecure
+	k8s.restConfig.TLSClientConfig.Insecure = cfg.Insecure
+
+	return nil
+
+}
+
+func (k8s *K8SClient) NewClientset() (*kubernetes.Clientset, error) {
+	return kubernetes.NewForConfig(k8s.restConfig)
+}
+
+func (k8s *K8SClient) NewClient() (client.Client, error) {
+	client, err := client.New(k8s.restConfig, client.Options{})
 	if err != nil {
 		return nil, err
 	}
@@ -93,15 +120,4 @@ func registerSchema(client client.Client) error {
 	}
 
 	return nil
-}
-
-func NewClientset(cfg *openshiftTY.PluginConfig) (*kubernetes.Clientset, error) {
-	config, err := GetConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	config.TLSClientConfig.Insecure = cfg.Insecure
-
-	return kubernetes.NewForConfig(config)
 }

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"github.com/jkandasa/autoeasy/pkg/utils"
 	funcUtils "github.com/jkandasa/autoeasy/pkg/utils/function"
 	csvAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/cluster_service_version"
 	deploymentAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/deployment"
@@ -13,13 +12,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Uninstall removes the Subscription and ClusterServiceVersion
-func Uninstall(k8sClient client.Client, cfg map[string]interface{}) error {
+// UninstallWithMap removes the Subscription and ClusterServiceVersion
+func UninstallWithMap(k8sClient client.Client, cfg map[string]interface{}) error {
 	subscription := &corsosv1alpha1.Subscription{}
 	err := mcUtils.MapToStruct(mcUtils.TagNameJSON, cfg, subscription)
 	if err != nil {
 		return err
 	}
+	return Uninstall(k8sClient, subscription)
+}
+
+// Uninstall removes the Subscription and ClusterServiceVersion
+func Uninstall(k8sClient client.Client, subscription *corsosv1alpha1.Subscription) error {
 	opts := []client.ListOption{
 		client.InNamespace(""),
 	}
@@ -64,19 +68,25 @@ func Uninstall(k8sClient client.Client, cfg map[string]interface{}) error {
 	return nil
 }
 
-func Install(k8sClient client.Client, cfg map[string]interface{}, tc openshiftTY.TimeoutConfig) error {
+func InstallWithMap(k8sClient client.Client, cfg map[string]interface{}, tc openshiftTY.TimeoutConfig) error {
+	subscription := &corsosv1alpha1.Subscription{}
+	err := mcUtils.MapToStruct(mcUtils.TagNameJSON, cfg, subscription)
+	if err != nil {
+		return err
+	}
+
+	return Install(k8sClient, subscription, tc)
+}
+
+func Install(k8sClient client.Client, subscriptionCfg *corsosv1alpha1.Subscription, tc openshiftTY.TimeoutConfig) error {
 	// create subscription
-	err := subscriptionAPI.CreateWithMap(k8sClient, cfg)
+	err := subscriptionAPI.Create(k8sClient, subscriptionCfg)
 	if err != nil {
 		return err
 	}
 
 	// get updated subscription
-	objectMeta, err := utils.GetObjectMeta(cfg)
-	if err != nil {
-		return err
-	}
-	subscription, err := subscriptionAPI.Get(k8sClient, objectMeta.Name, objectMeta.Namespace)
+	subscription, err := subscriptionAPI.Get(k8sClient, subscriptionCfg.Name, subscriptionCfg.Namespace)
 	if err != nil {
 		return err
 	}
