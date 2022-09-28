@@ -1,6 +1,6 @@
 module github.com/jkandasa/autoeasy
 
-go 1.17
+go 1.19
 
 require (
 	github.com/openshift/api v0.0.0-20210713130143-be21c6cb1bea

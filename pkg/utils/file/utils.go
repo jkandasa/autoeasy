@@ -3,7 +3,6 @@ package file
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -120,7 +119,7 @@ func WriteFile(dir, filename string, data []byte) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(fmt.Sprintf("%s/%s", dir, filename), data, os.ModePerm)
+	return os.WriteFile(fmt.Sprintf("%s/%s", dir, filename), data, os.ModePerm)
 }
 
 // AppendFile func
@@ -144,7 +143,7 @@ func ReadFile(dir, filename string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ioutil.ReadFile(fmt.Sprintf("%s/%s", dir, filename))
+	return os.ReadFile(fmt.Sprintf("%s/%s", dir, filename))
 }
 
 // ListFiles func
@@ -153,14 +152,19 @@ func ListFiles(dir string) ([]fileTY.File, error) {
 	if err != nil {
 		return nil, err
 	}
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
 
 	items := make([]fileTY.File, 0)
-	for _, file := range files {
-		if !file.IsDir() {
+	for _, entry := range files {
+		if !entry.IsDir() {
+			file, err := entry.Info()
+			if err != nil {
+				zap.L().Error("error on getting file detail", zap.String("name", entry.Name()), zap.Error(err))
+				return nil, err
+			}
 			f := fileTY.File{
 				Name:         file.Name(),
 				Size:         file.Size(),
@@ -180,14 +184,19 @@ func ListDirs(dir string) ([]fileTY.File, error) {
 	if err != nil {
 		return nil, err
 	}
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
 
 	items := make([]fileTY.File, 0)
-	for _, file := range files {
-		if file.IsDir() {
+	for _, entry := range files {
+		if entry.IsDir() {
+			file, err := entry.Info()
+			if err != nil {
+				zap.L().Error("error on getting dir detail", zap.String("name", entry.Name()), zap.Error(err))
+				return nil, err
+			}
 			f := fileTY.File{
 				Name:         file.Name(),
 				Size:         file.Size(),

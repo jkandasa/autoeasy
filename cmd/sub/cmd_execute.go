@@ -1,7 +1,6 @@
 package sub
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -53,7 +52,7 @@ var executeCmd = &cobra.Command{
 		zap.L().Info("user input", zap.String("resource-dir", resourceDir), zap.String("plugin-config", pluginConfig))
 
 		// load providers
-		bytes, err := ioutil.ReadFile(pluginConfig)
+		bytes, err := os.ReadFile(pluginConfig)
 		if err != nil {
 			zap.L().Fatal("error on reading plugin config file", zap.String("plugin-config", pluginConfig), zap.Error(err))
 			return
