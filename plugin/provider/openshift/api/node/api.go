@@ -34,11 +34,10 @@ func Get(k8sClient client.Client, name, namespace string) (*corev1.Node, error) 
 	return node, nil
 }
 
-func WaitForNodesReady(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) error {
+func WaitForNodesReady(k8sClient client.Client, tc openshiftTY.TimeoutConfig) error {
 	executeFunc := func() (bool, error) {
 		return IsNodesReady(k8sClient)
 	}
-	tc := cfg.Config.TimeoutConfig
 	return funcUtils.ExecuteWithTimeoutAndContinuesSuccessCount(executeFunc, tc.Timeout, tc.ScanInterval, tc.ExpectedSuccessCount)
 }
 

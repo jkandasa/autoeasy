@@ -70,7 +70,7 @@ func delete(k8sClient client.Client, cfg *openshiftTY.ProviderConfig, items []v1
 		}
 		zap.L().Debug("deleted a ImageContentSourcePolicy", zap.String("name", icsp.Name))
 	}
-	return nodeAPI.WaitForNodesReady(k8sClient, cfg)
+	return nodeAPI.WaitForNodesReady(k8sClient, cfg.Config.TimeoutConfig)
 }
 
 func add(k8sClient client.Client, task *openshiftTY.ProviderConfig) error {
@@ -123,5 +123,5 @@ func add(k8sClient client.Client, task *openshiftTY.ProviderConfig) error {
 		}
 	}
 
-	return nodeAPI.WaitForNodesReady(k8sClient, task)
+	return nodeAPI.WaitForNodesReady(k8sClient, task.Config.TimeoutConfig)
 }
