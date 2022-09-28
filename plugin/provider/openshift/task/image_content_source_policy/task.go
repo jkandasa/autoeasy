@@ -2,7 +2,6 @@ package task
 
 import (
 	"github.com/jkandasa/autoeasy/pkg/utils"
-	funcUtils "github.com/jkandasa/autoeasy/pkg/utils/function"
 	icspAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/image_content_source_policy"
 	nodeAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/node"
 	openshiftTY "github.com/jkandasa/autoeasy/plugin/provider/openshift/types"
@@ -71,7 +70,7 @@ func delete(k8sClient client.Client, cfg *openshiftTY.ProviderConfig, items []v1
 		}
 		zap.L().Debug("deleted a ImageContentSourcePolicy", zap.String("name", icsp.Name))
 	}
-	return waitForNodes(k8sClient, cfg)
+	return nodeAPI.WaitForNodesReady(k8sClient, cfg)
 }
 
 func add(k8sClient client.Client, task *openshiftTY.ProviderConfig) error {
@@ -124,34 +123,5 @@ func add(k8sClient client.Client, task *openshiftTY.ProviderConfig) error {
 		}
 	}
 
-	return waitForNodes(k8sClient, task)
-}
-
-func waitForNodes(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) error {
-	executeFunc := func() (bool, error) {
-		return isNodesReady(k8sClient)
-	}
-	tc := cfg.Config.TimeoutConfig
-	return funcUtils.ExecuteWithTimeoutAndContinuesSuccessCount(executeFunc, tc.Timeout, tc.ScanInterval, tc.ExpectedSuccessCount)
-}
-
-func isNodesReady(k8sClient client.Client) (bool, error) {
-	opts := []client.ListOption{
-		client.InNamespace(""),
-	}
-	nodeList, err := nodeAPI.List(k8sClient, opts)
-	unavailable := []string{}
-	if err == nil {
-		for _, node := range nodeList.Items {
-			if node.Spec.Unschedulable {
-				unavailable = append(unavailable, node.Name)
-			}
-		}
-	}
-	if len(unavailable) == 0 {
-		zap.L().Debug("nodes are ready", zap.Any("unavailableNodes", unavailable))
-		return true, nil
-	}
-	zap.L().Debug("waiting for nodes are getting ready", zap.Any("unavailableNodes", unavailable))
-	return false, nil
+	return nodeAPI.WaitForNodesReady(k8sClient, task)
 }
