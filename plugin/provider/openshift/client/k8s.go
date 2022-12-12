@@ -79,6 +79,10 @@ func (k8s *K8SClient) Login(cfg *openshiftTY.PluginConfig, forceRelogin bool) er
 
 }
 
+func (k8s *K8SClient) GetRestConfig() *rest.Config {
+	return k8s.restConfig
+}
+
 func (k8s *K8SClient) NewClientset() (*kubernetes.Clientset, error) {
 	return kubernetes.NewForConfig(k8s.restConfig)
 }
