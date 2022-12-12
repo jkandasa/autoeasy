@@ -1,4 +1,4 @@
-package k8s
+package api
 
 import (
 	"errors"
@@ -26,9 +26,9 @@ type PortForwardRequest struct {
 	readyCh   chan struct{}         `json:"-"`
 }
 
-func (k8s *K8SClient) PortForward(req PortForwardRequest) (func(), error) {
-	if k8s.restConfig == nil {
-		return nil, errors.New("seems not logged into the cluster")
+func PortForward(restConfig *rest.Config, req PortForwardRequest) (func(), error) {
+	if restConfig == nil {
+		return nil, errors.New("cluster rest config can not be empty")
 	}
 
 	if req.Namespace == "" || req.Pod == "" {
@@ -56,7 +56,7 @@ func (k8s *K8SClient) PortForward(req PortForwardRequest) (func(), error) {
 	}
 
 	go func() {
-		err := portForwardToPod(req, k8s.restConfig)
+		err := portForwardToPod(req, restConfig)
 		if err != nil {
 			zap.L().Error("error on port forward", zap.Any("config", req), zap.Error(err))
 		}

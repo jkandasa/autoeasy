@@ -15,12 +15,14 @@ import (
 	taskDeployment "github.com/jkandasa/autoeasy/plugin/provider/openshift/task/deployment"
 	taskICSP "github.com/jkandasa/autoeasy/plugin/provider/openshift/task/image_content_source_policy"
 	taskNS "github.com/jkandasa/autoeasy/plugin/provider/openshift/task/namespace"
+	taskPod "github.com/jkandasa/autoeasy/plugin/provider/openshift/task/pod"
 	taskRoute "github.com/jkandasa/autoeasy/plugin/provider/openshift/task/route"
 	taskSubscription "github.com/jkandasa/autoeasy/plugin/provider/openshift/task/subscription"
 	openshiftTY "github.com/jkandasa/autoeasy/plugin/provider/openshift/types"
 	providerPluginTY "github.com/jkandasa/autoeasy/plugin/provider/types"
 	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -29,10 +31,11 @@ const (
 )
 
 type Openshift struct {
-	Config       openshiftTY.PluginConfig
-	Client       *k8s.K8SClient
-	K8SClient    client.Client
-	K8SClientSet *kubernetes.Clientset
+	Config        openshiftTY.PluginConfig
+	Client        *k8s.K8SClient
+	K8SClient     client.Client
+	K8SClientSet  *kubernetes.Clientset
+	K8SRestConfig *rest.Config
 }
 
 func New(config map[string]interface{}) (providerPluginTY.Plugin, error) {
@@ -87,6 +90,9 @@ func (o *Openshift) Execute(task *templateTY.Task) (interface{}, error) {
 
 	case openshiftTY.KindRoute:
 		return taskRoute.Run(o.K8SClient, config)
+
+	case openshiftTY.KindPod:
+		return taskPod.Run(o.K8SClient, config)
 
 	case openshiftTY.KindInternal:
 		return o.runInternal(config)
@@ -150,6 +156,9 @@ func (o *Openshift) login(cfg *openshiftTY.PluginConfig) error {
 		return err
 	}
 	o.K8SClientSet = kubeClientSet
+
+	// load rest config
+	o.K8SRestConfig = o.Client.GetRestConfig()
 
 	zap.L().Info("kubernetes client loaded successfully")
 	clusterAPI.PrintClusterInfo(o.K8SClient, o.K8SClientSet)

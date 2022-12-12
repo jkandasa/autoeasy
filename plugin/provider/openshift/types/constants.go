@@ -18,6 +18,7 @@ const (
 	KindCatalogSource            = "CatalogSource"
 	KindNamespace                = "Namespace"
 	KindDeployment               = "Deployment"
+	KindPod                      = "Pod"
 	KindRoute                    = "Route"
 	KindInternal                 = "Internal"
 )
