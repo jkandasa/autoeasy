@@ -1,8 +1,9 @@
 package task
 
 import (
+	"fmt"
+
 	"github.com/jkandasa/autoeasy/pkg/utils"
-	funcUtils "github.com/jkandasa/autoeasy/pkg/utils/function"
 	nsAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/namespace"
 	openshiftTY "github.com/jkandasa/autoeasy/plugin/provider/openshift/types"
 	"go.uber.org/zap"
@@ -18,6 +19,11 @@ func Run(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) (interface{},
 	case openshiftTY.FuncKeepOnly, openshiftTY.FuncRemove, openshiftTY.FuncRemoveAll:
 		return nil, performDelete(k8sClient, cfg)
 
+	case openshiftTY.FuncWaitForDelete:
+		if len(cfg.Data) == 0 {
+			return nil, fmt.Errorf("no data supplied. {kind:%s, function:%s}", cfg.Kind, cfg.Function)
+		}
+		return nil, waitForDeletion(k8sClient, cfg)
 	}
 
 	return nil, nil
@@ -63,18 +69,20 @@ func delete(k8sClient client.Client, cfg *openshiftTY.ProviderConfig, items []co
 	if len(items) == 0 {
 		return nil
 	}
-	for _, ns := range items {
+	namespaces := make([]string, len(items))
+	for index, ns := range items {
+		namespaces[index] = ns.Name
 		err := nsAPI.Delete(k8sClient, &ns)
 		if err != nil {
 			return err
 		}
-		zap.L().Debug("deleted a Namespace", zap.String("namespace", ns.Name))
-		err = waitForDeletion(k8sClient, cfg, ns.Name)
-		if err != nil {
-			return err
-		}
+		zap.L().Debug("deleted a namespace", zap.String("name", ns.Name))
 	}
-	return nil
+	// wait for absent
+	ts := openshiftTY.TimeoutConfig{}
+	ts.UpdateDefaults()
+	ts.ExpectedSuccessCount = 1
+	return nsAPI.WaitForDeletion(k8sClient, namespaces, ts)
 }
 
 func add(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) error {
@@ -129,27 +137,13 @@ func add(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) error {
 	return nil
 }
 
-func waitForDeletion(k8sClient client.Client, cfg *openshiftTY.ProviderConfig, namespace string) error {
-	executeFunc := func() (bool, error) {
-		return isDeleted(k8sClient, namespace)
-	}
-	tc := cfg.Config.TimeoutConfig
-	return funcUtils.ExecuteWithTimeoutAndContinuesSuccessCount(executeFunc, tc.Timeout, tc.ScanInterval, tc.ExpectedSuccessCount)
-}
+func waitForDeletion(k8sClient client.Client, cfg *openshiftTY.ProviderConfig) error {
+	// get namespace detail
+	namespaces := utils.ToStringSlice(cfg.Data)
 
-func isDeleted(k8sClient client.Client, namespace string) (bool, error) {
-	opts := []client.ListOption{
-		client.InNamespace(""),
-	}
-	nsList, err := nsAPI.List(k8sClient, opts)
-	if err == nil {
-		for _, cs := range nsList.Items {
-			if cs.Name == namespace {
-				zap.L().Debug("waiting for Namespace to removed", zap.Any("namespace", namespace))
-				return false, nil
-			}
-		}
-	}
-
-	return true, nil
+	// wait for absent
+	ts := openshiftTY.TimeoutConfig{}
+	ts.UpdateDefaults()
+	ts.ExpectedSuccessCount = 1
+	return nsAPI.WaitForDeletion(k8sClient, namespaces, ts)
 }

@@ -2,15 +2,16 @@ package types
 
 const (
 	// functions
-	FuncGet          = "get"
-	FuncAdd          = "add"
-	FuncRemove       = "remove"
-	FuncRemoveAll    = "remove_all"
-	FuncKeepOnly     = "keep_only"
-	FuncPrintInfo    = "print_info"
-	FuncWaitForReady = "wait_for_ready"
-	FuncLogin        = "login"
-	FuncLogout       = "logout"
+	FuncGet           = "get"
+	FuncAdd           = "add"
+	FuncRemove        = "remove"
+	FuncRemoveAll     = "remove_all"
+	FuncKeepOnly      = "keep_only"
+	FuncPrintInfo     = "print_info"
+	FuncWaitForReady  = "wait_for_ready"
+	FuncWaitForDelete = "wait_for_delete"
+	FuncLogin         = "login"
+	FuncLogout        = "logout"
 
 	// kinds
 	KindSubscription             = "Subscription"

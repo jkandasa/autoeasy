@@ -8,31 +8,21 @@ import (
 	"strings"
 	"time"
 
-	iostreamTY "github.com/jkandasa/autoeasy/pkg/types/iostream"
 	iostreamUtils "github.com/jkandasa/autoeasy/pkg/utils/iostream"
+	openshiftTY "github.com/jkandasa/autoeasy/plugin/provider/openshift/types"
 	"go.uber.org/zap"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
 )
 
-type PortForwardRequest struct {
-	Namespace string                `json:"namespace"`
-	Pod       string                `json:"pod"`
-	Addresses []string              `json:"addresses"`
-	Ports     []string              `json:"ports"`
-	Streams   *iostreamTY.IOStreams `json:"-"`
-	stopCh    <-chan struct{}       `json:"-"`
-	readyCh   chan struct{}         `json:"-"`
-}
-
-func PortForward(restConfig *rest.Config, req PortForwardRequest) (func(), error) {
+func PortForward(restConfig *rest.Config, portForwardConfig openshiftTY.PortForwardRequest) (func(), error) {
 	if restConfig == nil {
 		return nil, errors.New("cluster rest config can not be empty")
 	}
 
-	if req.Namespace == "" || req.Pod == "" {
-		return nil, fmt.Errorf("namespace or pod can not be empty. namespace:%s, pod:%s", req.Namespace, req.Pod)
+	if portForwardConfig.Namespace == "" || portForwardConfig.Pod == "" {
+		return nil, fmt.Errorf("namespace or pod can not be empty. namespace:%s, pod:%s", portForwardConfig.Namespace, portForwardConfig.Pod)
 	}
 
 	// stopCh control the port forwarding lifecycle. When it gets closed the port forward will terminate
@@ -40,35 +30,32 @@ func PortForward(restConfig *rest.Config, req PortForwardRequest) (func(), error
 	// readyCh communicate when the port forward is ready to get traffic
 	readyCh := make(chan struct{})
 
-	req.stopCh = stopCh
-	req.readyCh = readyCh
-
 	// load defaults
-	if req.Streams == nil {
-		req.Streams = iostreamUtils.GetLogWriter()
+	if portForwardConfig.Streams == nil {
+		portForwardConfig.Streams = iostreamUtils.GetLogWriter()
 	}
 
-	if len(req.Addresses) == 0 {
-		req.Addresses = []string{"127.0.0.1"}
+	if len(portForwardConfig.Addresses) == 0 {
+		portForwardConfig.Addresses = []string{"127.0.0.1"}
 	}
-	if len(req.Ports) == 0 {
-		req.Addresses = []string{"8080:8080"} // localPort:targetPort
+	if len(portForwardConfig.Ports) == 0 {
+		portForwardConfig.Addresses = []string{"8080:8080"} // localPort:targetPort
 	}
 
 	go func() {
-		err := portForwardToPod(req, restConfig)
+		err := portForwardToPod(restConfig, portForwardConfig, stopCh, readyCh)
 		if err != nil {
-			zap.L().Error("error on port forward", zap.Any("config", req), zap.Error(err))
+			zap.L().Error("error on port forward", zap.Any("config", portForwardConfig), zap.Error(err))
 		}
 	}()
 
 	select {
 	case <-readyCh:
-		zap.L().Info("port forward ready", zap.Any("config", req))
+		zap.L().Info("port forward ready", zap.Any("config", portForwardConfig))
 		break
 
 	case <-time.After(10 * time.Second):
-		zap.L().Error("port forward reached timeout", zap.Any("config", req))
+		zap.L().Error("port forward reached timeout", zap.Any("config", portForwardConfig))
 		return nil, errors.New("port forward reached timeout")
 	}
 
@@ -79,9 +66,9 @@ func PortForward(restConfig *rest.Config, req PortForwardRequest) (func(), error
 	return closeFunc, nil
 }
 
-func portForwardToPod(req PortForwardRequest, restCfg *rest.Config) error {
+func portForwardToPod(restCfg *rest.Config, pfConfig openshiftTY.PortForwardRequest, stopCh <-chan struct{}, readyCh chan struct{}) error {
 	path := fmt.Sprintf("/api/v1/namespaces/%s/pods/%s/portforward",
-		req.Namespace, req.Pod)
+		pfConfig.Namespace, pfConfig.Pod)
 	hostIP := strings.TrimLeft(restCfg.Host, "htps:/")
 
 	transport, upgrader, err := spdy.RoundTripperFor(restCfg)
@@ -90,7 +77,7 @@ func portForwardToPod(req PortForwardRequest, restCfg *rest.Config) error {
 	}
 
 	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, http.MethodPost, &url.URL{Scheme: "https", Path: path, Host: hostIP})
-	fw, err := portforward.NewOnAddresses(dialer, req.Addresses, req.Ports, req.stopCh, req.readyCh, req.Streams.Out, req.Streams.ErrOut)
+	fw, err := portforward.NewOnAddresses(dialer, pfConfig.Addresses, pfConfig.Ports, stopCh, readyCh, pfConfig.Streams.Out, pfConfig.Streams.ErrOut)
 	if err != nil {
 		return err
 	}
