@@ -32,7 +32,7 @@ type IOStreams struct {
 	ErrOut io.Writer
 }
 
-func (k8s *K8SClient) PortForward(req PortForwardRequest) (<-chan struct{}, error) {
+func (k8s *K8SClient) PortForward(req PortForwardRequest) (func(), error) {
 	if k8s.restConfig == nil {
 		return nil, errors.New("seems not logged in")
 	}
@@ -72,10 +72,14 @@ func (k8s *K8SClient) PortForward(req PortForwardRequest) (<-chan struct{}, erro
 
 	case <-time.After(10 * time.Second):
 		zap.L().Error("reached timeout")
-		return stopCh, errors.New("reached timeout")
+		return nil, errors.New("reached timeout")
 	}
 
-	return stopCh, nil
+	closeFunc := func() {
+		close(stopCh)
+	}
+
+	return closeFunc, nil
 
 }
 
