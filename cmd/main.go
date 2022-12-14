@@ -1,9 +1,11 @@
 package main
 
 import (
-	"github.com/jkandasa/autoeasy/cmd/sub"
+	_ "github.com/jkandasa/autoeasy/cmd/init"
+
+	rootCmd "github.com/jkandasa/autoeasy/cmd/root"
 )
 
 func main() {
-	sub.Execute()
+	rootCmd.Execute()
 }

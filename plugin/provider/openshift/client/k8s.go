@@ -9,6 +9,7 @@ import (
 	osoperatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	routev1 "github.com/openshift/api/route/v1"
 	corsosv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	"go.uber.org/zap"
 
 	openshiftTY "github.com/jkandasa/autoeasy/plugin/provider/openshift/types"
 
@@ -124,4 +125,24 @@ func registerSchema(client client.Client) error {
 	}
 
 	return nil
+}
+
+func GetKubernetesClient() client.Client {
+	k8sClientConf := GetK8SClientConfig()
+	k8sClient, err := k8sClientConf.NewClient()
+	if err != nil {
+		zap.L().Fatal("error on loading k8s client", zap.Error(err))
+	}
+
+	return k8sClient
+}
+
+func GetK8SClientConfig() *K8SClient {
+	zap.L().Debug("loading k8s client")
+	k8sClientConf := &K8SClient{Config: &openshiftTY.PluginConfig{LoadClient: true, LoadFromConfig: true, Insecure: true}}
+	err := k8sClientConf.Login(k8sClientConf.Config, false)
+	if err != nil {
+		zap.L().Fatal("error on login into k8s cluster", zap.Error(err))
+	}
+	return k8sClientConf
 }
