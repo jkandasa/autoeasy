@@ -7,6 +7,7 @@ import (
 	"os"
 
 	getRootCmd "github.com/jkandasa/autoeasy/cmd/plugin/openshift/get"
+	openshiftRootCmd "github.com/jkandasa/autoeasy/cmd/plugin/openshift/root"
 	rootCmd "github.com/jkandasa/autoeasy/cmd/root"
 	"github.com/mycontroller-org/server/v2/pkg/utils/printer"
 	csvAPI "github.com/operator-framework/api/pkg/operators/v1alpha1"
@@ -39,7 +40,7 @@ var (
 
 func init() {
 	getRootCmd.AddCommand(getPackageCmd)
-	getPackageCmd.Flags().StringVar(&indexImage, "image", "registry.redhat.io/redhat/redhat-operator-index:v4.11", "index image name")
+	getPackageCmd.Flags().StringVar(&indexImage, "image", openshiftRootCmd.DefaultRegistryImage, "index image name")
 	getPackageCmd.Flags().StringVar(&registryAddress, "address", "", "registry address. if left blank, index image will be deployed on your cluster by this tool")
 	getPackageCmd.Flags().BoolVar(&listAllPackages, "all", false, "list all packages")
 	getPackageCmd.Flags().BoolVar(&displayRelatedImages, "related-images", false, "displays only related images")
