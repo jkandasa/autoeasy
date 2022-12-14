@@ -51,6 +51,17 @@ func Create(k8sClient client.Client, jaeger *jaegerv1.Jaeger) error {
 	return k8sClient.Create(context.Background(), jaeger)
 }
 
+func CreateAndWait(k8sClient client.Client, jaeger *jaegerv1.Jaeger) error {
+	err := k8sClient.Create(context.Background(), jaeger)
+	if err != nil {
+		return err
+	}
+	executeFunc := func() (bool, error) {
+		return isRunning(k8sClient, jaeger.Name, jaeger.Namespace)
+	}
+	return funcUtils.ExecuteWithDefaultTimeoutAndContinuesSuccessCount(executeFunc)
+}
+
 func CreateWithMap(k8sClient client.Client, cfg map[string]interface{}) error {
 	jaeger := &jaegerv1.Jaeger{}
 	err := formatterUtils.JsonMapToStruct(cfg, jaeger)
@@ -66,9 +77,6 @@ func CreateWithMap(k8sClient client.Client, cfg map[string]interface{}) error {
 func CreateWithMapAndWait(k8sClient client.Client, cfg map[string]interface{}) error {
 	jaeger := &jaegerv1.Jaeger{}
 	err := formatterUtils.JsonMapToStruct(cfg, jaeger)
-	if err != nil {
-		return err
-	}
 	if err != nil {
 		return err
 	}
