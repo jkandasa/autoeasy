@@ -67,7 +67,7 @@ func PortForward(restConfig *rest.Config, portForwardConfig openshiftTY.PortForw
 }
 
 func portForwardToPodOrDeployment(restCfg *rest.Config, pfConfig openshiftTY.PortForwardRequest, stopCh <-chan struct{}, readyCh chan struct{}) error {
-	resourceType := "pods"
+	resourceType := ""
 	resourceName := ""
 	if pfConfig.Pod != "" {
 		resourceType = "pods"
