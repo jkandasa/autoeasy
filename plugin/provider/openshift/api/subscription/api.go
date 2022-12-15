@@ -55,3 +55,7 @@ func CreateWithMap(k8sClient client.Client, cfg map[string]interface{}) error {
 func Create(k8sClient client.Client, subscription *corsosv1alpha1.Subscription) error {
 	return k8sClient.Create(context.Background(), subscription)
 }
+
+func Update(k8sClient client.Client, subscription *corsosv1alpha1.Subscription) error {
+	return k8sClient.Update(context.Background(), subscription)
+}

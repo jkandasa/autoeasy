@@ -43,7 +43,7 @@ func PortForward(restConfig *rest.Config, portForwardConfig openshiftTY.PortForw
 	}
 
 	go func() {
-		err := portForwardToPod(restConfig, portForwardConfig, stopCh, readyCh)
+		err := portForwardToPodOrDeployment(restConfig, portForwardConfig, stopCh, readyCh)
 		if err != nil {
 			zap.L().Error("error on port forward", zap.Any("config", portForwardConfig), zap.Error(err))
 		}
@@ -66,9 +66,22 @@ func PortForward(restConfig *rest.Config, portForwardConfig openshiftTY.PortForw
 	return closeFunc, nil
 }
 
-func portForwardToPod(restCfg *rest.Config, pfConfig openshiftTY.PortForwardRequest, stopCh <-chan struct{}, readyCh chan struct{}) error {
-	path := fmt.Sprintf("/api/v1/namespaces/%s/pods/%s/portforward",
-		pfConfig.Namespace, pfConfig.Pod)
+func portForwardToPodOrDeployment(restCfg *rest.Config, pfConfig openshiftTY.PortForwardRequest, stopCh <-chan struct{}, readyCh chan struct{}) error {
+	resourceType := "pods"
+	resourceName := ""
+	if pfConfig.Pod != "" {
+		resourceType = "pods"
+		resourceName = pfConfig.Pod
+	} else {
+		resourceType = "deployments"
+		resourceName = pfConfig.Deployment
+	}
+
+	if resourceName == "" {
+		return errors.New("resourceName can not be empty")
+	}
+
+	path := fmt.Sprintf("/api/v1/namespaces/%s/%s/%s/portforward", pfConfig.Namespace, resourceType, resourceName)
 	hostIP := strings.TrimLeft(restCfg.Host, "htps:/")
 
 	transport, upgrader, err := spdy.RoundTripperFor(restCfg)

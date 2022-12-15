@@ -10,7 +10,7 @@ import (
 	openshiftRootCmd "github.com/jkandasa/autoeasy/cmd/plugin/openshift/root"
 	rootCmd "github.com/jkandasa/autoeasy/cmd/root"
 	"github.com/mycontroller-org/server/v2/pkg/utils/printer"
-	csvAPI "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	csvv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/operator-framework/operator-registry/pkg/api"
 	"github.com/operator-framework/operator-registry/pkg/client"
 	"github.com/spf13/cobra"
@@ -207,7 +207,7 @@ func printRegistryRelatesImages(ctx context.Context, registryClient *client.Clie
 }
 
 func loadRelatedImages(bundle *api.Bundle) ([]interface{}, error) {
-	csv := &csvAPI.ClusterServiceVersion{}
+	csv := &csvv1alpha1.ClusterServiceVersion{}
 	err := json.Unmarshal([]byte(bundle.GetCsvJson()), csv)
 	if err != nil {
 		return nil, err

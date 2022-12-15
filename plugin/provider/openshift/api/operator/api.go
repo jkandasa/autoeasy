@@ -79,10 +79,25 @@ func InstallWithMap(k8sClient client.Client, cfg map[string]interface{}, tc open
 }
 
 func Install(k8sClient client.Client, subscriptionCfg *corsosv1alpha1.Subscription, tc openshiftTY.TimeoutConfig) error {
-	// create subscription
-	err := subscriptionAPI.Create(k8sClient, subscriptionCfg)
-	if err != nil {
-		return err
+	return apply(k8sClient, subscriptionCfg, tc, false)
+}
+
+func Upgrade(k8sClient client.Client, subscriptionCfg *corsosv1alpha1.Subscription, tc openshiftTY.TimeoutConfig) error {
+	return apply(k8sClient, subscriptionCfg, tc, true)
+}
+
+func apply(k8sClient client.Client, subscriptionCfg *corsosv1alpha1.Subscription, tc openshiftTY.TimeoutConfig, isUpgrade bool) error {
+	// create/upgrade subscription
+	if isUpgrade {
+		err := subscriptionAPI.Update(k8sClient, subscriptionCfg)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := subscriptionAPI.Create(k8sClient, subscriptionCfg)
+		if err != nil {
+			return err
+		}
 	}
 
 	// get updated subscription
