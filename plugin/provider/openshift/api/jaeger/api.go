@@ -7,6 +7,7 @@ import (
 	"github.com/jkandasa/autoeasy/pkg/utils"
 	formatterUtils "github.com/jkandasa/autoeasy/pkg/utils/formatter"
 	funcUtils "github.com/jkandasa/autoeasy/pkg/utils/function"
+	openshiftTY "github.com/jkandasa/autoeasy/plugin/provider/openshift/types"
 
 	"go.uber.org/zap"
 
@@ -51,7 +52,7 @@ func Create(k8sClient client.Client, jaeger *jaegerv1.Jaeger) error {
 	return k8sClient.Create(context.Background(), jaeger)
 }
 
-func CreateAndWait(k8sClient client.Client, jaeger *jaegerv1.Jaeger) error {
+func CreateAndWait(k8sClient client.Client, jaeger *jaegerv1.Jaeger, timeoutConfig openshiftTY.TimeoutConfig) error {
 	err := k8sClient.Create(context.Background(), jaeger)
 	if err != nil {
 		return err
@@ -59,7 +60,8 @@ func CreateAndWait(k8sClient client.Client, jaeger *jaegerv1.Jaeger) error {
 	executeFunc := func() (bool, error) {
 		return isRunning(k8sClient, jaeger.Name, jaeger.Namespace)
 	}
-	return funcUtils.ExecuteWithDefaultTimeoutAndContinuesSuccessCount(executeFunc)
+
+	return funcUtils.ExecuteWithTimeoutAndContinuesSuccessCount(executeFunc, timeoutConfig.Timeout, timeoutConfig.ScanInterval, timeoutConfig.ExpectedSuccessCount)
 }
 
 func CreateWithMap(k8sClient client.Client, cfg map[string]interface{}) error {

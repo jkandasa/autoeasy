@@ -123,6 +123,6 @@ func isAbsent(k8sClient client.Client, namespaces []string) (bool, error) {
 		zap.L().Debug("namespaces are absent", zap.Any("namespaces", namespaces))
 		return true, nil
 	}
-	zap.L().Debug("waiting for namespaced to be removed", zap.Any("stillPresent", availableList))
+	zap.L().Debug("waiting for namespace to be removed", zap.Any("stillPresent", availableList))
 	return false, nil
 }
