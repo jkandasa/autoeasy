@@ -88,8 +88,8 @@ func (k8s *K8SClient) NewClientset() (*kubernetes.Clientset, error) {
 	return kubernetes.NewForConfig(k8s.restConfig)
 }
 
-func (k8s *K8SClient) NewClient() (client.Client, error) {
-	client, err := client.New(k8s.restConfig, client.Options{})
+func NewClientFromRestConfig(restConfig *rest.Config) (client.Client, error) {
+	client, err := client.New(restConfig, client.Options{})
 	if err != nil {
 		return nil, err
 	}
@@ -101,6 +101,10 @@ func (k8s *K8SClient) NewClient() (client.Client, error) {
 	}
 
 	return client, nil
+}
+
+func (k8s *K8SClient) NewClient() (client.Client, error) {
+	return NewClientFromRestConfig(k8s.restConfig)
 }
 
 func registerSchema(client client.Client) error {

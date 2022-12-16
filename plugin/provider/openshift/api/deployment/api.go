@@ -5,10 +5,12 @@ import (
 
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/jkandasa/autoeasy/pkg/utils"
 	formatterUtils "github.com/jkandasa/autoeasy/pkg/utils/formatter"
 	funcUtils "github.com/jkandasa/autoeasy/pkg/utils/function"
+	podAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/pod"
 
 	openshiftTY "github.com/jkandasa/autoeasy/plugin/provider/openshift/types"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,6 +37,28 @@ func Get(k8sClient client.Client, name, namespace string) (*appsv1.Deployment, e
 		return nil, err
 	}
 	return deployment, nil
+}
+
+func ListPods(k8sClient client.Client, deploymentName, namespace string) (*corev1.PodList, error) {
+	deployment, err := Get(k8sClient, deploymentName, namespace)
+	if err != nil {
+		return nil, err
+	}
+	return podAPI.List(k8sClient, []client.ListOption{client.MatchingLabels(deployment.Spec.Selector.MatchLabels)})
+}
+
+func ListRunningPods(k8sClient client.Client, deploymentName, namespace string) ([]corev1.Pod, error) {
+	podsList, err := ListPods(k8sClient, deploymentName, namespace)
+	if err != nil {
+		return nil, err
+	}
+	pods := make([]corev1.Pod, 0)
+	for _, pod := range podsList.Items {
+		if pod.Status.Phase == corev1.PodRunning {
+			pods = append(pods, pod)
+		}
+	}
+	return pods, nil
 }
 
 func Delete(k8sClient client.Client, deployment *appsv1.Deployment) error {
