@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"github.com/jkandasa/autoeasy/pkg/utils"
 	nsAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/namespace"
 	podAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/pod"
 	portForwardAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/port_forward"
@@ -80,4 +81,14 @@ func deployIndexImage(address string) (func(), string, error) {
 	}
 
 	return closeFunc, "127.0.0.1:50051", nil
+}
+
+func undeployIndexImage() {
+	k8sClient := openshiftClient.GetKubernetesClient()
+	ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: IndexImageNamespace}}
+
+	err := nsAPI.Delete(k8sClient, &ns)
+	if utils.IgnoreNotFoundError(err) != nil {
+		zap.L().Error("error on deleting a namespace", zap.String("namespace", ns.GetName()), zap.Error(err))
+	}
 }

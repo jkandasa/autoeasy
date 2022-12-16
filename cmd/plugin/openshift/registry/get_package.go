@@ -26,7 +26,7 @@ type RelatedImage struct {
 }
 
 const (
-	IndexImageNamespace     = "index-image-ns"
+	IndexImageNamespace     = "autoeasy-index-image-ns"
 	IndexImagePodName       = "index-image"
 	IndexImageContainerPort = 50051
 )
@@ -50,6 +50,10 @@ var getPackageCmd = &cobra.Command{
 	Use:   "package",
 	Short: "prints package details from a registry",
 	Run: func(cmd *cobra.Command, packagesList []string) {
+		if !listAllPackages && len(packagesList) == 0 {
+			zap.L().Fatal("there is no package name supplied")
+			return
+		}
 		printRegistryImages(registryAddress, packagesList)
 	},
 }
@@ -66,6 +70,7 @@ func printRegistryImages(address string, packagesList []string) {
 		if closePortForwardFunc != nil {
 			closePortForwardFunc()
 		}
+		undeployIndexImage()
 	}()
 
 	// get operator registry client
