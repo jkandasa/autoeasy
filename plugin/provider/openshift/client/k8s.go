@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"flag"
+	"os"
 	"path/filepath"
 	"sync"
 
@@ -36,7 +37,10 @@ func New(cfg *openshiftTY.PluginConfig) *K8SClient {
 
 func (k8s *K8SClient) loadConfigFromFile() error {
 	parseConfig.Do(func() { // run only once
-		if home := homedir.HomeDir(); home != "" {
+		if os.Getenv("KUBECONFIG") != "" {
+			_kubeconfig := os.Getenv("KUBECONFIG")
+			kubeconfig = &_kubeconfig
+		} else if home := homedir.HomeDir(); home != "" {
 			kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 		} else {
 			kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
