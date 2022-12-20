@@ -2,6 +2,7 @@ package iostream
 
 import (
 	"os"
+	"strings"
 
 	iostreamTY "github.com/jkandasa/autoeasy/pkg/types/iostream"
 	"go.uber.org/zap"
@@ -12,10 +13,11 @@ type ioStreamsLogger struct {
 }
 
 func (io *ioStreamsLogger) Write(data []byte) (int, error) {
+	msg := strings.TrimSuffix(string(data), "\n")
 	if io.isErrorWriter {
-		zap.L().Error(string(data))
+		zap.L().Error(msg)
 	} else {
-		zap.L().Info(string(data))
+		zap.L().Info(msg)
 	}
 
 	return len(data), nil
