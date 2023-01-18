@@ -108,8 +108,7 @@ var installJaegerCmd = &cobra.Command{
 		tc.UpdateDefaults()
 		tc.ExpectedSuccessCount = 2
 		zap.L().Debug("installing an jaeger", zap.String("name", jaegerCR.GetName()), zap.String("namespace", jaegerCR.GetNamespace()))
-		jaegerAPI.CreateAndWait(k8sClient, jaegerCR, tc)
-
+		err = jaegerAPI.CreateAndWait(k8sClient, jaegerCR, tc)
 		if err != nil {
 			zap.L().Error("error on installing jaeger", zap.String("name", jaegerCR.GetName()), zap.String("namespace", jaegerCR.GetNamespace()), zap.Error(err))
 			return
