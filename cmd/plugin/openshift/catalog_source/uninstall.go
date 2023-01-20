@@ -2,6 +2,7 @@ package catalogsource
 
 import (
 	openshiftUninstallCmd "github.com/jkandasa/autoeasy/cmd/plugin/openshift/uninstall"
+	rootCmd "github.com/jkandasa/autoeasy/cmd/root"
 	csAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/catalog_source"
 	openshiftClient "github.com/jkandasa/autoeasy/plugin/provider/openshift/client"
 	"github.com/spf13/cobra"
@@ -28,7 +29,8 @@ var uninstallCsCmd = &cobra.Command{
 func uninstallCatalogSources(k8sClient client.Client, catalogSourceList []string) {
 	csList, err := csAPI.List(k8sClient, []client.ListOption{})
 	if err != nil {
-		zap.L().Fatal("error on getting catalog source list", zap.Error(err))
+		zap.L().Error("error on getting catalog source list", zap.Error(err))
+		rootCmd.ExitWithError()
 	}
 	for _, catalogSourceName := range catalogSourceList {
 		found := false

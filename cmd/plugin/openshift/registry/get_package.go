@@ -51,8 +51,8 @@ var getPackageCmd = &cobra.Command{
 	Short: "prints package details from a registry",
 	Run: func(cmd *cobra.Command, packagesList []string) {
 		if !listAllPackages && len(packagesList) == 0 {
-			zap.L().Fatal("there is no package name supplied")
-			return
+			zap.L().Error("there is no package name supplied")
+			rootCmd.ExitWithError()
 		}
 		printRegistryImages(registryAddress, packagesList)
 	},
@@ -62,7 +62,8 @@ func printRegistryImages(address string, packagesList []string) {
 	// deploy index image, if required
 	closePortForwardFunc, address, err := deployIndexImage(address)
 	if err != nil {
-		zap.L().Fatal("error on deploying index image", zap.String("indexImage", indexImage), zap.Error(err))
+		zap.L().Error("error on deploying index image", zap.String("indexImage", indexImage), zap.Error(err))
+		rootCmd.ExitWithError()
 	}
 
 	// close the port forward binding
@@ -76,7 +77,8 @@ func printRegistryImages(address string, packagesList []string) {
 	// get operator registry client
 	registryClient, err := client.NewClient(address)
 	if err != nil {
-		zap.L().Fatal("error on loading k8s client", zap.Error(err))
+		zap.L().Error("error on loading k8s client", zap.Error(err))
+		rootCmd.ExitWithError()
 	}
 	ctx := context.Background()
 
@@ -101,7 +103,8 @@ func printRegistryImages(address string, packagesList []string) {
 	if listAllPackages {
 		bundles, err := registryClient.ListBundles(ctx)
 		if err != nil {
-			zap.L().Fatal("error on getting bundles", zap.Error(err))
+			zap.L().Error("error on getting bundles", zap.Error(err))
+			rootCmd.ExitWithError()
 		}
 		for {
 			bundle := bundles.Next()
@@ -154,7 +157,8 @@ func printRegistryRelatesImages(ctx context.Context, registryClient *client.Clie
 	if listAllPackages {
 		bundles, err := registryClient.ListBundles(ctx)
 		if err != nil {
-			zap.L().Fatal("error on getting bundles", zap.Error(err))
+			zap.L().Error("error on getting bundles", zap.Error(err))
+			rootCmd.ExitWithError()
 		}
 
 		for {

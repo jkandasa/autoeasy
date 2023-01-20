@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	openshiftInstallCmd "github.com/jkandasa/autoeasy/cmd/plugin/openshift/install"
+	rootCmd "github.com/jkandasa/autoeasy/cmd/root"
 	nsAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/namespace"
 	operatorAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/operator"
 	openshiftClient "github.com/jkandasa/autoeasy/plugin/provider/openshift/client"
@@ -45,7 +46,7 @@ var installOperatorCmd = &cobra.Command{
 			err := uninstallOperator(k8sClient, operatorsList)
 			if err != nil {
 				zap.L().Error("error on uninstalling operators", zap.Any("operators", operatorsList), zap.Error(err))
-				return
+				rootCmd.ExitWithError()
 			}
 		}
 
@@ -53,7 +54,7 @@ var installOperatorCmd = &cobra.Command{
 		err := nsAPI.CreateIfNotAvailable(k8sClient, installOperatorNamespace)
 		if err != nil {
 			zap.L().Fatal("error on creating namespace", zap.String("namespace", installOperatorNamespace), zap.Error(err))
-			return
+			rootCmd.ExitWithError()
 		}
 
 		// parse environments
@@ -95,7 +96,7 @@ var installOperatorCmd = &cobra.Command{
 			err = operatorAPI.Install(k8sClient, &subscription, tc)
 			if err != nil {
 				zap.L().Error("error on installing an operator", zap.String("name", _operator), zap.Error(err))
-				continue
+				rootCmd.ExitWithError()
 			}
 			zap.L().Info("installed an operator", zap.String("operator", subscription.GetName()), zap.String("namespace", subscription.GetNamespace()))
 		}

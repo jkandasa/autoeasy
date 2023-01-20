@@ -50,26 +50,26 @@ var executeCmd = &cobra.Command{
 		// load providers
 		bytes, err := os.ReadFile(pluginConfig)
 		if err != nil {
-			zap.L().Fatal("error on reading plugin config file", zap.String("plugin-config", pluginConfig), zap.Error(err))
-			return
+			zap.L().Error("error on reading plugin config file", zap.String("plugin-config", pluginConfig), zap.Error(err))
+			ExitWithError()
 		}
 		// update environment variables in plugin file
 		updatedPluginConfig, err := templateUtils.Execute(string(bytes), nil)
 		if err != nil {
-			zap.L().Fatal("error on updating plugin environment variables", zap.Error(err))
-			return
+			zap.L().Error("error on updating plugin environment variables", zap.Error(err))
+			ExitWithError()
 		}
 
 		pluginData := &types.PluginFile{}
 		err = yaml.Unmarshal([]byte(updatedPluginConfig), pluginData)
 		if err != nil {
-			zap.L().Fatal("error on unmarshal plugin config file", zap.String("plugin-config", pluginConfig), zap.Error(err))
-			return
+			zap.L().Error("error on unmarshal plugin config file", zap.String("plugin-config", pluginConfig), zap.Error(err))
+			ExitWithError()
 		}
 		err = providerSVC.Start(pluginData.Provider)
 		if err != nil {
-			zap.L().Fatal("error on loading a provider", zap.Error(err))
-			return
+			zap.L().Error("error on loading a provider", zap.Error(err))
+			ExitWithError()
 		}
 
 		// load templates
@@ -77,7 +77,7 @@ var executeCmd = &cobra.Command{
 		err = templateStore.LoadTemplates(templateDirPath)
 		if err != nil {
 			zap.L().Error("error on loading template files", zap.String("templateDir", templateDirPath), zap.Error(err))
-			os.Exit(1)
+			ExitWithError()
 		}
 
 		// load variables
@@ -85,7 +85,7 @@ var executeCmd = &cobra.Command{
 		err = variableStore.LoadVariables(variablesDirPath)
 		if err != nil {
 			zap.L().Error("error on loading variable files", zap.String("variablesDir", variablesDirPath), zap.Error(err))
-			os.Exit(1)
+			ExitWithError()
 		}
 
 		// load executions
@@ -93,14 +93,14 @@ var executeCmd = &cobra.Command{
 		err = suiteStore.Load(suitesDirPath)
 		if err != nil {
 			zap.L().Error("error on loading suites files", zap.String("suitesDir", suitesDirPath), zap.Error(err))
-			os.Exit(1)
+			ExitWithError()
 		}
 
 		// execute tasks
 		err = suiteStore.Execute()
 		if err != nil {
 			zap.L().Error("error on execution", zap.Error(err))
-			os.Exit(1)
+			ExitWithError()
 		}
 	},
 }

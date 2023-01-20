@@ -5,6 +5,7 @@ import (
 	icspAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/image_content_source_policy"
 	nodeAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/node"
 
+	rootCmd "github.com/jkandasa/autoeasy/cmd/root"
 	openshiftClient "github.com/jkandasa/autoeasy/plugin/provider/openshift/client"
 	"github.com/openshift/api/operator/v1alpha1"
 	"github.com/spf13/cobra"
@@ -40,13 +41,13 @@ var deleteIcspCmd = &cobra.Command{
 			err := icspAPI.DeleteOfAll(k8sClient, &v1alpha1.ImageContentSourcePolicy{}, []client.DeleteAllOfOption{})
 			if err != nil {
 				zap.L().Error("error on deleting all ImageContentSourcePolicy", zap.Error(err))
-				return
+				rootCmd.ExitWithError()
 			}
 		} else {
 			err := deleteIcsp(k8sClient, icspNameList, false)
 			if err != nil {
 				zap.L().Error("error on deleting ImageContentSourcePolicy", zap.Any("names", icspNameList), zap.Error(err))
-				return
+				rootCmd.ExitWithError()
 			}
 		}
 
@@ -55,9 +56,9 @@ var deleteIcspCmd = &cobra.Command{
 			err := nodeAPI.WaitForNodesReady(k8sClient, nodeReadyTimeout)
 			if err != nil {
 				zap.L().Error("error on waiting to node ready state", zap.Error(err))
-			} else {
-				zap.L().Info("nodes are available to schedule")
+				rootCmd.ExitWithError()
 			}
+			zap.L().Info("nodes are available to schedule")
 		}
 	},
 }

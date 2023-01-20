@@ -3,6 +3,7 @@ package jaeger
 import (
 	jaegerv1 "github.com/jaegertracing/jaeger-operator/apis/v1"
 	openshiftUninstallCmd "github.com/jkandasa/autoeasy/cmd/plugin/openshift/uninstall"
+	rootCmd "github.com/jkandasa/autoeasy/cmd/root"
 	jaegerAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/jaeger"
 	openshiftClient "github.com/jkandasa/autoeasy/plugin/provider/openshift/client"
 	"github.com/spf13/cobra"
@@ -36,7 +37,7 @@ var uninstallJaegerCmd = &cobra.Command{
 			err := jaegerAPI.Delete(k8sClient, jaegerCR)
 			if err != nil {
 				zap.L().Error("error on uninstalling jaeger", zap.String("name", jaegerCR.GetName()), zap.String("namespace", jaegerCR.GetNamespace()), zap.Error(err))
-				continue
+				rootCmd.ExitWithError()
 			}
 			zap.L().Info("uninstalled jaeger", zap.String("name", jaegerCR.GetName()), zap.String("namespace", jaegerCR.GetNamespace()))
 		}

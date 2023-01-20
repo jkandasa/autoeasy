@@ -2,6 +2,7 @@ package operator
 
 import (
 	openshiftUninstallCmd "github.com/jkandasa/autoeasy/cmd/plugin/openshift/uninstall"
+	rootCmd "github.com/jkandasa/autoeasy/cmd/root"
 	operatorAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/operator"
 	subscriptionAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/subscription"
 	openshiftClient "github.com/jkandasa/autoeasy/plugin/provider/openshift/client"
@@ -25,6 +26,7 @@ var uninstallOperatorCmd = &cobra.Command{
 		err := uninstallOperator(k8sClient, operatorsList)
 		if err != nil {
 			zap.L().Error("error on uninstalling operator", zap.Any("operators", operatorsList), zap.Error(err))
+			rootCmd.ExitWithError()
 		}
 	},
 }
@@ -32,7 +34,7 @@ var uninstallOperatorCmd = &cobra.Command{
 func uninstallOperator(k8sClient client.Client, operatorsList []string) error {
 	subscriptionsList, err := subscriptionAPI.List(k8sClient, []client.ListOption{})
 	if err != nil {
-		zap.L().Fatal("error on getting subscriptions list", zap.Error(err))
+		zap.L().Error("error on getting subscriptions list", zap.Error(err))
 		return err
 	}
 

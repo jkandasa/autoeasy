@@ -1,6 +1,7 @@
 package registry
 
 import (
+	rootCmd "github.com/jkandasa/autoeasy/cmd/root"
 	"github.com/jkandasa/autoeasy/pkg/utils"
 	nsAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/namespace"
 	podAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/pod"
@@ -21,7 +22,8 @@ func deployIndexImage(address string) (func(), string, error) {
 	k8sClientCfg := openshiftClient.GetK8SClientConfig()
 	k8sClient, err := k8sClientCfg.NewClient()
 	if err != nil {
-		zap.L().Fatal("error on loading k8s client", zap.Error(err))
+		zap.L().Error("error on loading k8s client", zap.Error(err))
+		rootCmd.ExitWithError()
 	}
 
 	ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: IndexImageNamespace}}
@@ -29,13 +31,15 @@ func deployIndexImage(address string) (func(), string, error) {
 	// delete old namespace
 	err = nsAPI.DeleteAndWait(k8sClient, &ns)
 	if err != nil {
-		zap.L().Fatal("error on deleting namespace", zap.String("name", ns.Name), zap.Error(err))
+		zap.L().Error("error on deleting namespace", zap.String("name", ns.Name), zap.Error(err))
+		rootCmd.ExitWithError()
 	}
 
 	// create namespace
 	err = nsAPI.Create(k8sClient, &ns)
 	if err != nil {
-		zap.L().Fatal("error on creating namespace", zap.String("name", ns.Name), zap.Error(err))
+		zap.L().Error("error on creating namespace", zap.String("name", ns.Name), zap.Error(err))
+		rootCmd.ExitWithError()
 	}
 
 	indexImagePod := corev1.Pod{
@@ -65,7 +69,8 @@ func deployIndexImage(address string) (func(), string, error) {
 	// create pod and wait
 	err = podAPI.CreateAndWait(k8sClient, &indexImagePod)
 	if err != nil {
-		zap.L().Fatal("error on creating pod", zap.String("name", indexImagePod.Name), zap.String("namespace", indexImagePod.Namespace), zap.Error(err))
+		zap.L().Error("error on creating pod", zap.String("name", indexImagePod.Name), zap.String("namespace", indexImagePod.Namespace), zap.Error(err))
+		rootCmd.ExitWithError()
 	}
 
 	// setup port-forward
@@ -90,5 +95,6 @@ func undeployIndexImage() {
 	err := nsAPI.Delete(k8sClient, &ns)
 	if utils.IgnoreNotFoundError(err) != nil {
 		zap.L().Error("error on deleting a namespace", zap.String("namespace", ns.GetName()), zap.Error(err))
+		rootCmd.ExitWithError()
 	}
 }

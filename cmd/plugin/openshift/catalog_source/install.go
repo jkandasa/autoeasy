@@ -3,6 +3,7 @@ package catalogsource
 import (
 	openshiftInstallCmd "github.com/jkandasa/autoeasy/cmd/plugin/openshift/install"
 	openshiftRootCmd "github.com/jkandasa/autoeasy/cmd/plugin/openshift/root"
+	rootCmd "github.com/jkandasa/autoeasy/cmd/root"
 	csAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/catalog_source"
 	openshiftClient "github.com/jkandasa/autoeasy/plugin/provider/openshift/client"
 	corsosv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
@@ -57,7 +58,7 @@ var installCsCmd = &cobra.Command{
 		err := csAPI.Create(k8sClient, &catalogSource)
 		if err != nil {
 			zap.L().Error("error on creating a catalog source", zap.String("name", catalogSource.GetName()), zap.String("namespace", catalogSource.GetName()), zap.String("image", catalogSource.Spec.Image), zap.Error(err))
-			return
+			rootCmd.ExitWithError()
 		}
 		zap.L().Info("installed a catalog source", zap.String("name", catalogSource.GetName()), zap.String("namespace", catalogSource.GetName()), zap.String("image", catalogSource.Spec.Image))
 	},

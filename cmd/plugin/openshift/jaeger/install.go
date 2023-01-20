@@ -2,9 +2,11 @@ package jaeger
 
 import (
 	"strings"
+	"time"
 
 	jaegerv1 "github.com/jaegertracing/jaeger-operator/apis/v1"
 	openshiftInstallCmd "github.com/jkandasa/autoeasy/cmd/plugin/openshift/install"
+	rootCmd "github.com/jkandasa/autoeasy/cmd/root"
 	jaegerAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/jaeger"
 	nsAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/namespace"
 	openshiftClient "github.com/jkandasa/autoeasy/plugin/provider/openshift/client"
@@ -25,6 +27,7 @@ var (
 	jaegerEsResourceLimitMemory string
 	jaegerEsOptions             []string
 	jaegerForceRecreate         bool
+	timeoutString               string
 )
 
 func init() {
@@ -37,6 +40,7 @@ func init() {
 	installJaegerCmd.Flags().StringVar(&jaegerEsResourceLimitMemory, "es-memory-limit", "2Gi", "elasticsearch node container memory limit")
 	installJaegerCmd.Flags().StringSliceVar(&jaegerEsOptions, "es-option", []string{}, "comma separated elasticsearch options. key1=value1,key2=value2")
 	installJaegerCmd.Flags().BoolVar(&jaegerForceRecreate, "force", false, "uninstall the jaeger if exists and install")
+	installJaegerCmd.Flags().StringVar(&timeoutString, "timeout", "10m", "timeout")
 }
 
 var installJaegerCmd = &cobra.Command{
@@ -44,6 +48,12 @@ var installJaegerCmd = &cobra.Command{
 	Short: "installs jaeger",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, jaegersName []string) {
+		timeoutDuration, err := time.ParseDuration(timeoutString)
+		if err != nil {
+			zap.L().Error("error on parsing timeout", zap.String("input", timeoutString), zap.Error(err))
+			rootCmd.ExitWithError()
+		}
+
 		// get kubernetes client
 		k8sClient := openshiftClient.GetKubernetesClient()
 
@@ -92,26 +102,27 @@ var installJaegerCmd = &cobra.Command{
 			err := jaegerAPI.Delete(k8sClient, jaegerCR)
 			if err != nil {
 				zap.L().Error("error on uninstalling jaeger", zap.Any("jaeger", jaegerCR.GetName()), zap.Error(err))
-				return
+				rootCmd.ExitWithError()
 			}
 		}
 
 		// create namespace if not available
-		err := nsAPI.CreateIfNotAvailable(k8sClient, jaegerCR.GetNamespace())
+		err = nsAPI.CreateIfNotAvailable(k8sClient, jaegerCR.GetNamespace())
 		if err != nil {
-			zap.L().Fatal("error on creating namespace", zap.String("namespace", jaegerCR.GetNamespace()), zap.Error(err))
-			return
+			zap.L().Error("error on creating namespace", zap.String("namespace", jaegerCR.GetNamespace()), zap.Error(err))
+			rootCmd.ExitWithError()
 		}
 
 		// install jaeger
 		tc := types.TimeoutConfig{}
 		tc.UpdateDefaults()
+		tc.Timeout = timeoutDuration
 		tc.ExpectedSuccessCount = 2
 		zap.L().Debug("installing an jaeger", zap.String("name", jaegerCR.GetName()), zap.String("namespace", jaegerCR.GetNamespace()))
 		err = jaegerAPI.CreateAndWait(k8sClient, jaegerCR, tc)
 		if err != nil {
 			zap.L().Error("error on installing jaeger", zap.String("name", jaegerCR.GetName()), zap.String("namespace", jaegerCR.GetNamespace()), zap.Error(err))
-			return
+			rootCmd.ExitWithError()
 		}
 		zap.L().Info("installed an jaeger", zap.String("name", jaegerCR.GetName()), zap.String("namespace", jaegerCR.GetNamespace()))
 	},

@@ -1,8 +1,6 @@
 package root
 
 import (
-	"os"
-
 	loggerSVC "github.com/jkandasa/autoeasy/pkg/service/logger"
 	"github.com/mycontroller-org/server/v2/pkg/utils/printer"
 	"github.com/spf13/cobra"
@@ -35,7 +33,7 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		os.Exit(1)
+		ExitWithError()
 	}
 }
 

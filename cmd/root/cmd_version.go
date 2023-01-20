@@ -2,7 +2,6 @@ package root
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/jkandasa/autoeasy/pkg/json"
 	"github.com/jkandasa/autoeasy/pkg/version"
@@ -21,7 +20,7 @@ var versionCmd = &cobra.Command{
 		version, err := json.MarshalToString(version.Get())
 		if err != nil {
 			zap.L().Error("error on getting version details", zap.Error(err))
-			os.Exit(1)
+			ExitWithError()
 		}
 		fmt.Println(version)
 	},

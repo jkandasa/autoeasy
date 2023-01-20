@@ -4,6 +4,7 @@ import (
 	"time"
 
 	openshiftCreateCmd "github.com/jkandasa/autoeasy/cmd/plugin/openshift/create"
+	rootCmd "github.com/jkandasa/autoeasy/cmd/root"
 	icspAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/image_content_source_policy"
 	nodeAPI "github.com/jkandasa/autoeasy/plugin/provider/openshift/api/node"
 	openshiftClient "github.com/jkandasa/autoeasy/plugin/provider/openshift/client"
@@ -44,7 +45,7 @@ var createIcspCmd = &cobra.Command{
 
 		if len(createMirrors) == 0 {
 			zap.L().Error("mirror registries can not be empty")
-			return
+			rootCmd.ExitWithError()
 		}
 
 		// get kubernetes client
@@ -55,7 +56,7 @@ var createIcspCmd = &cobra.Command{
 			err := deleteIcsp(k8sClient, icspName, false)
 			if err != nil {
 				zap.L().Error("error on deleting an ImageContentSourcePolicy", zap.Any("name", icspName[0]), zap.Error(err))
-				return
+				rootCmd.ExitWithError()
 			}
 		}
 
@@ -77,7 +78,7 @@ var createIcspCmd = &cobra.Command{
 		err := icspAPI.Create(k8sClient, &icsp)
 		if err != nil {
 			zap.L().Error("error on creating an ImageContentSourcePolicy", zap.String("name", icspName[0]), zap.Error(err))
-			return
+			rootCmd.ExitWithError()
 		}
 
 		zap.L().Info("ImageContentSourcePolicy created", zap.String("name", icspName[0]))
@@ -86,9 +87,9 @@ var createIcspCmd = &cobra.Command{
 			err = nodeAPI.WaitForNodesReady(k8sClient, nodeReadyTimeout)
 			if err != nil {
 				zap.L().Error("error on waiting to node ready state", zap.Error(err))
-			} else {
-				zap.L().Info("nodes are available to schedule")
+				rootCmd.ExitWithError()
 			}
+			zap.L().Info("nodes are available to schedule")
 		}
 	},
 }
