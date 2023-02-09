@@ -15,19 +15,19 @@ import (
 	openshiftTY "github.com/jkandasa/autoeasy/plugin/provider/openshift/types"
 
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	restClient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
-	parseConfig sync.Once
-	kubeconfig  *string
+	parseConfig        sync.Once
+	kubeConfigFilename *string
 )
 
 type K8SClient struct {
-	restConfig *rest.Config
+	restConfig *restClient.Config
 	Config     *openshiftTY.PluginConfig
 }
 
@@ -38,17 +38,17 @@ func New(cfg *openshiftTY.PluginConfig) *K8SClient {
 func (k8s *K8SClient) loadConfigFromFile() error {
 	parseConfig.Do(func() { // run only once
 		if os.Getenv("KUBECONFIG") != "" {
-			_kubeconfig := os.Getenv("KUBECONFIG")
-			kubeconfig = &_kubeconfig
+			_kubeConfigFilename := os.Getenv("KUBECONFIG")
+			kubeConfigFilename = &_kubeConfigFilename
 		} else if home := homedir.HomeDir(); home != "" {
-			kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+			kubeConfigFilename = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 		} else {
-			kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+			kubeConfigFilename = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 		}
 		flag.Parse()
 	})
 
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	config, err := clientcmd.BuildConfigFromFlags("", *kubeConfigFilename)
 	if err != nil {
 		return err
 	}
@@ -66,11 +66,17 @@ func (k8s *K8SClient) Login(cfg *openshiftTY.PluginConfig, forceRelogin bool) er
 	if cfg.LoadFromConfig {
 		err := k8s.loadConfigFromFile()
 		if err != nil {
-			return err
+			zap.L().Debug("error on getting kube config, trying with in-cluster configuration", zap.Error(err))
+			// if no config files found or error with config file login, try with in-cluster configurations
+			_restConfig, err := restClient.InClusterConfig()
+			if err != nil {
+				return err
+			}
+			k8s.restConfig = _restConfig
 		}
 	} else {
 		// load config from input
-		k8s.restConfig = &rest.Config{
+		k8s.restConfig = &restClient.Config{
 			Host:     cfg.Server,
 			Username: cfg.Username,
 			Password: cfg.Password,
@@ -84,7 +90,7 @@ func (k8s *K8SClient) Login(cfg *openshiftTY.PluginConfig, forceRelogin bool) er
 
 }
 
-func (k8s *K8SClient) GetRestConfig() *rest.Config {
+func (k8s *K8SClient) GetRestConfig() *restClient.Config {
 	return k8s.restConfig
 }
 
@@ -92,7 +98,7 @@ func (k8s *K8SClient) NewClientset() (*kubernetes.Clientset, error) {
 	return kubernetes.NewForConfig(k8s.restConfig)
 }
 
-func NewClientFromRestConfig(restConfig *rest.Config) (client.Client, error) {
+func NewClientFromRestConfig(restConfig *restClient.Config) (client.Client, error) {
 	client, err := client.New(restConfig, client.Options{})
 	if err != nil {
 		return nil, err
