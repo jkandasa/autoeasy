@@ -36,11 +36,13 @@ var (
 	registryAddress      string
 	listAllPackages      bool
 	displayRelatedImages bool
+	alwaysPullImage      bool
 )
 
 func init() {
 	getRootCmd.AddCommand(getPackageCmd)
 	getPackageCmd.Flags().StringVar(&indexImage, "image", openshiftRootCmd.DefaultRegistryImage, "index image name")
+	getPackageCmd.Flags().BoolVar(&alwaysPullImage, "always-pull-image", true, "always pull image")
 	getPackageCmd.Flags().StringVar(&registryAddress, "address", "", "registry address. if left blank, index image will be deployed on your cluster by this tool")
 	getPackageCmd.Flags().BoolVar(&listAllPackages, "all", false, "list all packages")
 	getPackageCmd.Flags().BoolVar(&displayRelatedImages, "related-images", false, "displays only related images")
@@ -60,9 +62,9 @@ var getPackageCmd = &cobra.Command{
 
 func printRegistryImages(address string, packagesList []string) {
 	// deploy index image, if required
-	closePortForwardFunc, address, err := deployIndexImage(address)
+	closePortForwardFunc, address, err := deployIndexImage(address, alwaysPullImage)
 	if err != nil {
-		zap.L().Error("error on deploying index image", zap.String("indexImage", indexImage), zap.Error(err))
+		zap.L().Error("error on deploying index image", zap.String("indexImage", indexImage), zap.Bool("alwaysPullImage", alwaysPullImage), zap.Error(err))
 		rootCmd.ExitWithError()
 	}
 

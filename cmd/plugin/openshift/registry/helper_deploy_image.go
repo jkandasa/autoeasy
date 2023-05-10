@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func deployIndexImage(address string) (func(), string, error) {
+func deployIndexImage(address string, alwaysPullImage bool) (func(), string, error) {
 	if address != "" {
 		return nil, address, nil
 	}
@@ -42,13 +42,19 @@ func deployIndexImage(address string) (func(), string, error) {
 		rootCmd.ExitWithError()
 	}
 
+	pullImagePolicy := corev1.PullIfNotPresent
+	if alwaysPullImage {
+		pullImagePolicy = corev1.PullAlways
+	}
+
 	indexImagePod := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: IndexImagePodName, Namespace: ns.Name, Labels: map[string]string{"app": IndexImagePodName}},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
 				{
-					Name:  IndexImagePodName,
-					Image: indexImage,
+					Name:            IndexImagePodName,
+					Image:           indexImage,
+					ImagePullPolicy: pullImagePolicy,
 					Ports: []corev1.ContainerPort{
 						{
 							Name:          IndexImagePodName,
