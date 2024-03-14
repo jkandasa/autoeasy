@@ -81,13 +81,12 @@ func (k8s *K8SClient) Login(cfg *openshiftTY.PluginConfig, forceRelogin bool) er
 			Username: cfg.Username,
 			Password: cfg.Password,
 		}
+
+		// update insecure
+		k8s.restConfig.TLSClientConfig.Insecure = cfg.Insecure
 	}
 
-	// update insecure
-	k8s.restConfig.TLSClientConfig.Insecure = cfg.Insecure
-
 	return nil
-
 }
 
 func (k8s *K8SClient) GetRestConfig() *restClient.Config {
