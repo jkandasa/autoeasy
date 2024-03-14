@@ -1,13 +1,6 @@
 module github.com/jkandasa/autoeasy
 
-go 1.19
-
-require (
-	github.com/openshift/api v0.0.0-20210713130143-be21c6cb1bea
-	github.com/operator-framework/api v0.17.1
-	k8s.io/api v0.26.0
-	sigs.k8s.io/controller-runtime v0.12.1
-)
+go 1.21
 
 require (
 	github.com/go-cmd/cmd v1.4.1
@@ -17,6 +10,8 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/mycontroller-org/server/v2 v2.0.0-20221213115822-30de4399f58b
+	github.com/openshift/api v0.0.0-20210713130143-be21c6cb1bea
+	github.com/operator-framework/api v0.17.1
 	github.com/operator-framework/operator-registry v1.26.2
 	github.com/spf13/cobra v1.6.0
 	github.com/tidwall/gjson v1.12.1
@@ -24,9 +19,19 @@ require (
 	go.uber.org/zap v1.21.0
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
+	k8s.io/api v0.26.0
 	k8s.io/apiextensions-apiserver v0.26.0
 	k8s.io/apimachinery v0.26.0
 	k8s.io/client-go v12.0.0+incompatible
+	sigs.k8s.io/controller-runtime v0.12.1
+)
+
+replace (
+	// keep all the k8s packages in the same version
+	k8s.io/api => k8s.io/api v0.26.0
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.26.0
+	k8s.io/apimachinery => k8s.io/apimachinery v0.26.0
+	k8s.io/client-go => k8s.io/client-go v0.26.0
 )
 
 require (
@@ -100,5 +105,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
-
-replace k8s.io/client-go => k8s.io/client-go v0.26.0
