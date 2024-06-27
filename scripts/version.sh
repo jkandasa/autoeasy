@@ -18,7 +18,11 @@ fi
 # update version number
 export VERSION=`echo ${GIT_BRANCH} |  awk 'match($0, /([0-9]*\.[0-9]*\.[0-9]*)$/) { print substr($0, RSTART, RLENGTH) }'`
 if [ ${GIT_BRANCH} = "main" ]; then
-export VERSION="main"
+  export VERSION="main"
 fi
+if [ ${GIT_BRANCH} = "k8s_network_diagnose" ]; then
+  export VERSION="k8s-network-diagnose"
+fi
+
 
 export LD_FLAGS="-X $VERSION_PKG.version=$VERSION -X $VERSION_PKG.buildDate=$BUILD_DATE -X $VERSION_PKG.gitCommit=$GIT_SHA"
