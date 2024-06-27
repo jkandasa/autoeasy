@@ -1,7 +1,9 @@
 name: publish executables
 on:
   push:
-    branches: [main, k8s_network_diagnose]
+    branches: 
+      - main
+      - k8s_network_diagnose
     tags: ["v*"]
 
 jobs:
