@@ -1,7 +1,7 @@
 name: publish executables
 on:
   push:
-    branches: [main]
+    branches: [main, k8s_network_diagnose]
     tags: ["v*"]
 
 jobs:
@@ -55,6 +55,20 @@ jobs:
           automatic_release_tag: main
           prerelease: true
           title: "Development Build - main branch"
+          files: |
+            builds/*.tar.gz
+            builds/*.zip
+            builds/build_timestamp.txt
+            builds/SHA256SUMS.txt
+
+      - name: Update executables for k8s_network_diagnose branch changes
+        if: startsWith(github.ref, 'refs/heads/k8s_network_diagnose') # executes only for changes in k8s_network_diagnose
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GH_TOKEN }}"
+          automatic_release_tag: k8s_network_diagnose
+          prerelease: true
+          title: "Development Build - k8s_network_diagnose branch"
           files: |
             builds/*.tar.gz
             builds/*.zip

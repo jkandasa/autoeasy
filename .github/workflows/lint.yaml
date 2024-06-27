@@ -1,7 +1,7 @@
 name: golangci-lint
 on:
   push:
-    branches: [main]
+    branches: [main, k8s_network_diagnose]
     tags: ["V*"]
   pull_request:
 
